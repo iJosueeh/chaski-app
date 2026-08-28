@@ -2,207 +2,132 @@
 
 ## 1. Descripción
 
-**Chaski** es una aplicación móvil orientada a facilitar la planificación de salidas dentro de Lima Metropolitana.
+**Chaski** es una aplicación móvil orientada a facilitar la planificación inteligente y personalizada de salidas urbanas dentro de **Lima Metropolitana**.
 
-La aplicación busca transformar las condiciones y preferencias proporcionadas por el usuario en alternativas de recorridos que puedan realizarse dentro del tiempo disponible.
+La aplicación transforma las condiciones y preferencias proporcionadas por el usuario en alternativas de recorridos que pueden realizarse de manera realista dentro del tiempo y presupuesto disponibles.
 
-Para ello, considera información como:
-
-- ubicación de inicio;
-- ubicación o comportamiento esperado al finalizar la salida;
-- tiempo disponible;
-- intereses seleccionados;
-- rango de gasto aproximado;
-- forma de movilidad;
-- ubicación, horarios, duración estimada y características de los lugares disponibles.
-
-A partir de estas condiciones, Chaski genera y presenta hasta **tres alternativas de recorrido**, permitiendo al usuario compararlas y seleccionar la que considere más conveniente.
+```mermaid
+mindmap
+  root((🚌 Chaski))
+    Entradas del Usuario
+      📍 Ubicación inicial y retorno
+      ⏰ Ventana horaria disponible
+      💰 Rango de gasto estimado
+      🚶 Modalidad de movilidad
+      🎯 1 a 3 Intereses prioritarios
+    Procesamiento Inteligente
+      🔍 Filtro geoespacial de catálogo
+      🗺️ Matriz OD de tiempos de traslado
+      ⚡ Beam Search determinístico
+      ⚖️ Puntuación multicriterio
+    Resultado al Usuario
+      📱 Hasta 3 alternativas viables
+      🚶 Seguimiento y check-in
+      📜 Registro en historial
+```
 
 ---
 
 ## 2. Problema que aborda
 
-Planificar una salida puede requerir consultar diferentes fuentes para encontrar lugares, revisar horarios, calcular desplazamientos, estimar gastos y determinar si las actividades pueden realizarse dentro del tiempo disponible.
+Planificar una salida suele requerir consultar múltiples fuentes fragmentadas: mapas para rutas, redes sociales para recomendaciones, páginas web para horarios y estimaciones empíricas para prever gastos y congestión vehicular.
 
-La información necesaria puede encontrarse distribuida entre aplicaciones de mapas, redes sociales, páginas web y recomendaciones de otras personas.
+El reto principal no es únicamente encontrar lugares atractivos, sino **determinar cómo combinarlos secuencialmente** dentro de un itinerario continuo y compatible con las restricciones de la persona:
 
-El problema no consiste únicamente en encontrar lugares de interés, sino en determinar cómo combinarlos dentro de un recorrido que sea compatible con las condiciones particulares de una salida.
+> **El dilema tradicional:**
+> ¿Cómo enlazar una cafetería en Barranco con una galería de arte en Miraflores sin exceder 3 horas disponibles, respetando mi presupuesto y terminando en mi punto de retorno?
 
-Chaski busca apoyar este proceso centralizando las principales condiciones de planificación y utilizándolas para generar alternativas de recorrido.
-
----
-
-## 3. Usuarios objetivo
-
-La primera versión de Chaski está dirigida principalmente a personas que realizan salidas dentro de **Lima Metropolitana** y desean organizar actividades considerando restricciones de tiempo, ubicación, intereses, movilidad y gasto aproximado.
-
-El proyecto contempla dos roles principales:
-
-### Usuario
-
-Puede:
-
-- registrarse e iniciar sesión;
-- administrar sus preferencias;
-- configurar las condiciones de una salida;
-- generar alternativas de recorrido;
-- comparar los planes obtenidos;
-- seleccionar un plan;
-- seguir el progreso del recorrido;
-- registrar paradas como visitadas u omitidas;
-- finalizar o cancelar un recorrido;
-- consultar recorridos anteriores.
-
-### Administrador
-
-Es responsable de mantener la información utilizada por el sistema para la generación de recorridos.
-
-Puede:
-
-- gestionar lugares;
-- administrar horarios;
-- gestionar categorías y etiquetas;
-- activar o desactivar información del catálogo;
-- consultar reportes generales del sistema.
+Chaski resuelve esta fricción centralizando los parámetros y automatizando la generación de itinerarios ordenados.
 
 ---
 
-## 4. Propuesta de valor
+## 3. Usuarios Objetivo y Roles
 
-Chaski busca diferenciarse de una aplicación orientada únicamente al descubrimiento de lugares.
+```mermaid
+graph LR
+    subgraph Actores["👥 Roles del Sistema"]
+        U["👤 Usuario Final\n(Planifica, compara, recorre y registra)"]
+        A["👨‍💼 Administrador\n(Gestiona catálogo, horarios y taxonomía)"]
+    end
 
-Su propósito no es responder solamente:
+    subgraph Modulos["📱 Capacidades"]
+        M1["Configurar & Generar"]
+        M2["Recorrido Activo & Historial"]
+        M3["Gestión de Lugares & Categorías"]
+    end
 
-> ¿Qué lugares existen cerca de mí?
+    U --> M1
+    U --> M2
+    A --> M3
 
-Sino apoyar una decisión más completa:
-
-> ¿Qué recorrido puedo realizar considerando dónde empiezo, dónde necesito terminar, cuánto tiempo tengo, qué me interesa, cuánto aproximadamente deseo gastar y cómo voy a movilizarme?
-
-Por ello, el producto combina información de lugares y desplazamientos con las condiciones proporcionadas por el usuario para construir alternativas de planificación.
-
----
-
-## 5. Flujo principal del producto
-
-El flujo principal de Chaski puede resumirse de la siguiente manera:
-
-```text
-CONFIGURAR
-    ↓
-GENERAR
-    ↓
-COMPARAR
-    ↓
-ELEGIR
-    ↓
-RECORRER
-    ↓
-REGISTRAR
+    classDef uStyle fill:#E1F5FE,stroke:#0288D1,stroke-width:1.5px;
+    classDef aStyle fill:#E8F5E9,stroke:#2E7D32,stroke-width:1.5px;
+    class U,M1,M2 uStyle;
+    class A,M3 aStyle;
 ```
 
-### Configurar
+---
 
-El usuario proporciona las condiciones de la salida:
+## 4. Propuesta de Valor
 
-- punto de inicio;
-- intervalo de tiempo disponible;
-- intereses;
-- rango de gasto;
-- movilidad;
-- comportamiento del punto final.
+Chaski va más allá de un simple directorio geográfico (*«¿Qué hay cerca de mí?»*). Su valor radica en responder una pregunta multidimensional:
 
-### Generar
-
-El sistema obtiene lugares candidatos y analiza cuáles pueden formar parte de recorridos compatibles con las condiciones establecidas.
-
-### Comparar
-
-Se presentan hasta tres alternativas viables cuando sea posible generarlas.
-
-Cada alternativa muestra información que permita compararla con las demás, como:
-
-- lugares incluidos;
-- duración estimada;
-- gasto estimado;
-- recorrido;
-- nivel interno de compatibilidad.
-
-### Elegir
-
-El usuario selecciona la alternativa que desea realizar.
-
-### Recorrer
-
-El plan seleccionado pasa a ser el recorrido activo del usuario.
-
-Durante su ejecución, el usuario puede registrar el progreso de las diferentes paradas.
-
-### Registrar
-
-Una vez terminado o cancelado el recorrido, la información correspondiente permanece disponible como parte de su historial cuando corresponda.
+> **«¿Qué recorrido optimizado puedo realizar considerando dónde empiezo, a qué hora debo terminar, mis intereses, mi presupuesto y mi forma de transporte?»**
 
 ---
 
-## 6. Principios del producto
+## 5. Flujo Principal del Producto
 
-### 6.1. Viabilidad antes que cantidad
+```mermaid
+flowchart LR
+    A["⚙️ 1. Configurar\nInicio, fin, tiempo,\ngasto y categorías"] --> B["⚡ 2. Generar\nAlgoritmo Beam Search\ny matriz OD"]
+    B --> C["⚖️ 3. Comparar\nHasta 3 planes con\nscore y métricas"]
+    C --> D["🎯 4. Elegir\nSeleccionar alternativa\npreferida"]
+    D --> E["🚶 5. Recorrer\nCheck-in de paradas\ny navegación"]
+    E --> F["📜 6. Registrar\nGuardado en historial\ny evaluación"]
 
-Chaski no tiene como objetivo mostrar siempre tres alternativas.
+    style A fill:#E3F2FD,stroke:#1565C0
+    style B fill:#EDE7F6,stroke:#512DA8
+    style C fill:#FFF8E1,stroke:#F57F17
+    style D fill:#E0F2F1,stroke:#00695C
+    style E fill:#FBE9E7,stroke:#D84315
+    style F fill:#E8F5E9,stroke:#2E7D32
+```
 
-Si las condiciones ingresadas no permiten construir tres recorridos suficientemente viables, el sistema podrá presentar una cantidad menor.
+### Desglose de Etapas
 
-### 6.2. Las condiciones del usuario no se modifican silenciosamente
-
-El sistema no debe ampliar automáticamente el tiempo, presupuesto o condiciones indicadas únicamente para conseguir generar un recorrido.
-
-Cuando no existan alternativas viables, se deberá informar al usuario.
-
-### 6.3. El rango de gasto es un criterio de compatibilidad
-
-El rango de gasto indicado por el usuario representa una preferencia para evaluar alternativas y no necesariamente un límite económico estricto.
-
-Los costos mostrados por el sistema son estimaciones y pueden existir lugares o desplazamientos cuyo costo no pueda determinarse.
-
-### 6.4. Los tiempos son estimaciones
-
-Los tiempos de desplazamiento y duración de las actividades utilizados durante la planificación son valores estimados.
-
-Chaski no garantiza tiempos exactos de llegada o permanencia.
-
-### 6.5. Diversidad de alternativas
-
-Cuando existan suficientes recorridos viables, Chaski procurará presentar alternativas diferentes entre sí en lugar de mostrar varias opciones compuestas prácticamente por los mismos lugares.
-
-### 6.6. El usuario conserva la decisión final
-
-La valoración realizada por Chaski sirve para ordenar y presentar alternativas.
-
-La selección final del recorrido corresponde siempre al usuario.
+| Etapa | Responsabilidad del Sistema | Acción del Usuario |
+|---|---|---|
+| **1. Configurar** | Valida restricciones (hora fin > inicio, 1–3 categorías, gasto $\ge 0$). | Ingresa ubicación, horario, categorías, presupuesto y movilidad. |
+| **2. Generar** | Consulta catálogo, calcula matriz OD y ejecuta Beam Search en Edge Function. | Presiona el botón de generación y espera el resultado ($\le 3$ s). |
+| **3. Comparar** | Muestra métricas de cada plan: duración total, gasto estimado y score de afinidad. | Revisa las opciones en tarjetas comparativas y visualiza las paradas en mapa. |
+| **4. Elegir** | Cambia el estado del plan seleccionado a `SELECCIONADO`. | Confirma la opción elegida para su salida. |
+| **5. Recorrer** | Permite registrar progreso (`VISITADA` / `OMITIDA`) y mantiene 1 salida activa. | Avanza físicamente por las paradas e interactúa con la app. |
+| **6. Registrar** | Transiciona el plan a `COMPLETADO` o `CANCELADO` y lo almacena en historial. | Finaliza el recorrido y consulta el resumen en su historial personal. |
 
 ---
 
-## 7. Alcance inicial del producto
+## 6. Principios Rectores del Producto
 
-La primera versión se desarrollará considerando:
+> [!IMPORTANT]
+> **6.1. Viabilidad antes que cantidad:** Chaski no forzará la entrega de 3 planes si no existen suficientes rutas seguras y viables dentro del horario indicado. Preferirá entregar 1 o 2 de alta calidad a 3 con inconsistencias.
 
-- Lima Metropolitana como área inicial;
-- aplicación móvil;
-- usuarios autenticados;
-- conjunto controlado de lugares;
-- generación determinística de recorridos;
-- estimaciones de tiempo y gasto;
-- integración con servicios geográficos;
-- seguimiento manual del progreso del recorrido;
-- historial de recorridos;
-- funciones básicas de administración.
+> [!IMPORTANT]
+> **6.2. No modificación silenciosa de restricciones:** El sistema jamás ampliará automáticamente el tiempo o presupuesto del usuario para forzar un resultado. Si no hay opciones, lo informará con transparencia.
 
-Las características específicas incluidas y excluidas de la versión inicial se detallan en [Alcance del producto](./alcance.md).
+> [!NOTE]
+> **6.3. Gasto y tiempo como estimaciones:** Los costos y traslados son aproximaciones referenciales basadas en promedios y datos viales; no constituyen garantías absolutas de cobro o puntualidad.
+
+> [!TIP]
+> **6.4. Diversidad de alternativas:** Mediante el índice de similitud de Jaccard, el sistema evita proponer planes que solo varían en una parada secundaria, garantizando opciones genuinamente distintas.
+
+> [!NOTE]
+> **6.5. El usuario conserva la decisión final:** El ordenamiento y puntuación del algoritmo son herramientas de orientación; la elección definitiva siempre pertenece al usuario.
 
 ---
 
-## 8. Visión de evolución
+## 7. Documentos Relacionados
 
-La arquitectura de Chaski deberá permitir que en versiones posteriores puedan evaluarse nuevas fuentes de información, criterios de planificación o mecanismos de generación sin requerir modificar completamente el núcleo del producto.
-
-Estas posibilidades representan líneas de evolución y **no forman parte de los compromisos de la versión inicial**.
+* [`problema-y-objetivos.md`](./problema-y-objetivos.md) — Justificación metodológica y formulación PE/OE.
+* [`alcance.md`](./alcance.md) — Fronteras funcionales y técnicas del MVP.
+* [`../04-arquitectura/arquitectura-general.md`](../04-arquitectura/arquitectura-general.md) — Diseño de capas y componentes del sistema.

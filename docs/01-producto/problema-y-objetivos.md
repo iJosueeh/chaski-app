@@ -12,77 +12,101 @@ Por ello, se identifica la necesidad de una herramienta móvil que apoye la plan
 
 ---
 
-## 2. Problema general
+## 2. Árbol de Problemas y Objetivos
 
-**¿Cómo facilitar la planificación de salidas dentro de Lima Metropolitana considerando las condiciones y preferencias del usuario, como su ubicación de inicio y finalización, tiempo disponible, intereses, rango de gasto y forma de movilidad?**
+```mermaid
+flowchart LR
+    subgraph Problemas["❌ Problemas Específicos"]
+        PE1["PE01: Dispersión de condiciones\ny preferencias"]
+        PE2["PE02: Dificultad para combinar\nlugares, horarios y rutas"]
+        PE3["PE03: Falta de comparación clara\nde opciones viables"]
+        PE4["PE04: Ausencia de seguimiento\nmanual y registro del plan"]
+    end
 
----
+    subgraph Objetivos["🎯 Objetivos Específicos"]
+        OE1["OE01: Centralizar captura\nde restricciones del usuario"]
+        OE2["OE02: Motor algorítmico de\ngeneración de recorridos"]
+        OE3["OE03: Evaluación multicriterio\ny comparación visual"]
+        OE4["OE04: Módulo de recorrido\nactivo e historial"]
+    end
 
-## 3. Problemas específicos
+    PE1 -->|Se resuelve con| OE1
+    PE2 -->|Se resuelve con| OE2
+    PE3 -->|Se resuelve con| OE3
+    PE4 -->|Se resuelve con| OE4
 
-### PE01
-
-¿Cómo centralizar las principales condiciones y preferencias que una persona considera al momento de planificar una salida?
-
-### PE02
-
-¿Cómo generar alternativas de recorrido que combinen lugares de interés considerando horarios, duración de actividades y tiempos de desplazamiento?
-
-### PE03
-
-¿Cómo facilitar la comparación de alternativas considerando los intereses, tiempo disponible, rango de gasto y desplazamiento del usuario?
-
-### PE04
-
-¿Cómo permitir que el usuario seleccione y registre el progreso del recorrido elegido desde una aplicación móvil?
-
----
-
-## 4. Objetivo general
-
-**Desarrollar una aplicación móvil que facilite la planificación de salidas dentro de Lima Metropolitana mediante la generación de alternativas de recorridos basadas en las condiciones y preferencias del usuario, considerando su ubicación de inicio y finalización, tiempo disponible, intereses, rango de gasto y forma de movilidad.**
-
----
-
-## 5. Objetivos específicos
-
-### OE01
-
-Implementar un mecanismo que permita al usuario registrar las principales condiciones y preferencias de una salida, incluyendo ubicación, tiempo disponible, intereses, rango de gasto y forma de movilidad.
-
-### OE02
-
-Desarrollar un mecanismo de generación de recorridos que combine lugares de interés considerando sus horarios, duración estimada de las actividades y tiempos de desplazamiento.
-
-### OE03
-
-Implementar un mecanismo de evaluación y presentación de alternativas que facilite su comparación según su compatibilidad con las condiciones proporcionadas por el usuario.
-
-### OE04
-
-Desarrollar funcionalidades que permitan seleccionar un recorrido, registrar el progreso de sus paradas y consultar posteriormente la información correspondiente a los recorridos realizados.
+    classDef prob fill:#FFEBEE,stroke:#C62828,stroke-width:1.5px;
+    classDef obj fill:#E8F5E9,stroke:#2E7D32,stroke-width:1.5px;
+    class PE1,PE2,PE3,PE4 prob;
+    class OE1,OE2,OE3,OE4 obj;
+```
 
 ---
 
-## 6. Relación entre problemas y objetivos
+## 3. Formulación del Problema
 
-| Problema específico | Objetivo específico |
+### Problema general
+
+> **¿Cómo facilitar la planificación de salidas dentro de Lima Metropolitana considerando las condiciones y preferencias del usuario, como su ubicación de inicio y finalización, tiempo disponible, intereses, rango de gasto y forma de movilidad?**
+
+### Problemas específicos
+
+| Código | Formulación del Problema Específico |
 |---|---|
-| PE01 — Centralización de condiciones y preferencias | OE01 — Registrar las condiciones de la salida |
-| PE02 — Generación de recorridos viables | OE02 — Generar recorridos considerando lugares y desplazamientos |
-| PE03 — Comparación de alternativas | OE03 — Evaluar y presentar alternativas |
-| PE04 — Ejecución y seguimiento | OE04 — Seleccionar, registrar progreso y consultar recorridos |
+| **PE01** | ¿Cómo centralizar las principales condiciones y preferencias que una persona considera al momento de planificar una salida? |
+| **PE02** | ¿Cómo generar alternativas de recorrido que combinen lugares de interés considerando horarios, duración de actividades y tiempos de desplazamiento? |
+| **PE03** | ¿Cómo facilitar la comparación de alternativas considerando los intereses, tiempo disponible, rango de gasto y desplazamiento del usuario? |
+| **PE04** | ¿Cómo permitir que el usuario seleccione y registre el progreso del recorrido elegido desde una aplicación móvil? |
 
 ---
 
-## 7. Relación con otros documentos
+## 4. Definición de Objetivos
+
+### Objetivo general
+
+> **Desarrollar una aplicación móvil que facilite la planificación de salidas dentro de Lima Metropolitana mediante la generación de alternativas de recorridos basadas en las condiciones y preferencias del usuario, considerando su ubicación de inicio y finalización, tiempo disponible, intereses, rango de gasto y forma de movilidad.**
+
+### Objetivos específicos
+
+| Código | Formulación del Objetivo Específico | Entregable técnico asociado |
+|---|---|---|
+| **OE01** | Implementar un mecanismo que permita al usuario registrar las principales condiciones y preferencias de una salida, incluyendo ubicación, tiempo disponible, intereses, rango de gasto y forma de movilidad. | Formulario de solicitud y módulo de preferencias (`CU01`, `CU02`) |
+| **OE02** | Desarrollar un mecanismo de generación de recorridos que combine lugares de interés considerando sus horarios, duración estimada de las actividades y tiempos de desplazamiento. | Edge Function con Beam Search y proveedor geográfico (`CU03`) |
+| **OE03** | Implementar un mecanismo de evaluación y presentación de alternativas que facilite su comparación según su compatibilidad con las condiciones proporcionadas por el usuario. | Comparador visual de planes con scoring multicriterio (`CU04`) |
+| **OE04** | Desarrollar funcionalidades que permitan seleccionar un recorrido, registrar el progreso de sus paradas y consultar posteriormente la información correspondiente a los recorridos realizados. | Módulo de recorrido activo e historial (`CU05`, `CU06`) |
+
+---
+
+## 5. Matriz de Relación Problema ↔ Objetivo ↔ Solución
+
+```mermaid
+graph TB
+    subgraph Solucion["🏗️ Componentes de la Solución"]
+        S1["Módulo de Planificación UI"]
+        S2["Algoritmo Beam Search + Matriz OD"]
+        S3["Motor de Scoring Multicriterio"]
+        S4["Gestión de Recorrido Activo + DB RLS"]
+    end
+
+    OE1 --> S1
+    OE2 --> S2
+    OE3 --> S3
+    OE4 --> S4
+
+    style Solucion fill:#F5F5F5,stroke:#9E9E9E
+    style S1 fill:#E1F5FE,stroke:#0288D1
+    style S2 fill:#EDE7F6,stroke:#512DA8
+    style S3 fill:#FFF8E1,stroke:#F57F17
+    style S4 fill:#E8F5E9,stroke:#2E7D32
+```
+
+---
+
+## 6. Relación con otros documentos
 
 La definición detallada de las funcionalidades derivadas de estos objetivos se encuentra en:
 
-- [`requisitos-funcionales.md`](../02-requisitos/requisitos-funcionales.md)
-- [`reglas-negocio.md`](../02-requisitos/reglas-negocio.md)
-- [`trazabilidad.md`](../02-requisitos/trazabilidad.md)
-
-Los límites establecidos para la primera versión se encuentran en:
-
-- [`alcance.md`](./alcance.md)
+- [`requisitos-funcionales.md`](../02-requisitos/requisitos-funcionales.md) — Desglose funcional detallado de cada requerimiento.
+- [`reglas-negocio.md`](../02-requisitos/reglas-negocio.md) — Restricciones de negocio y criterios de validación.
+- [`trazabilidad.md`](../02-requisitos/trazabilidad.md) — Matriz de correspondencia completa entre requisitos y código.
+- [`alcance.md`](./alcance.md) — Delimitación de fronteras del producto (MVP vs Versiones futuras).

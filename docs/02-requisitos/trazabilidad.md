@@ -13,16 +13,18 @@ La trazabilidad permite verificar que los requisitos funcionales se encuentren a
 
 La relación general utilizada es:
 
-```text
-PROBLEMA
-   ↓
-OBJETIVO
-   ↓
-REQUISITO FUNCIONAL
-   ↓
-CASO DE USO
-   ↓
-REGLAS DE NEGOCIO
+```mermaid
+flowchart LR
+    P["🎯 PROBLEMA\n(PE01–PE04)"] --> O["🏁 OBJETIVO\n(OE01–OE04)"]
+    O --> RF["📋 REQUISITO\n(RF01–RF29)"]
+    RF --> CU["👤 CASO DE USO\n(CU01–CU09)"]
+    CU --> RN["⚖️ REGLAS DE NEGOCIO\n(USR, SOL, PLA...)"]
+
+    style P fill:#FFEBEE,stroke:#C62828
+    style O fill:#E8F5E9,stroke:#2E7D32
+    style RF fill:#E1F5FE,stroke:#0288D1
+    style CU fill:#EDE7F6,stroke:#512DA8
+    style RN fill:#FFF8E1,stroke:#F57F17
 ```
 
 ---

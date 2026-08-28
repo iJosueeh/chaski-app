@@ -8,6 +8,26 @@ Las reglas establecen restricciones, condiciones y comportamientos que deben cum
 
 Los requisitos funcionales indican **qué puede hacer el sistema**, mientras que las reglas de negocio determinan **bajo qué condiciones puede hacerlo**.
 
+```mermaid
+mindmap
+  root((⚖️ Reglas de Negocio))
+    Gestión de Acceso
+      USR: Usuarios & Preferencias
+    Planificación
+      SOL: Solicitudes de Salida
+      LUG: Catálogo & Horarios
+      GEN: Generación & Podas
+    Evaluación
+      EVA: Scoring Multicriterio
+      PLA: Ciclo de Vida del Plan
+    Ejecución
+      PAR: Check-in de Paradas
+      HIS: Registro en Historial
+    Administración
+      CAT: Categorías
+      ETI: Taxonomía & Etiquetas
+```
+
 ---
 
 # 2. Usuarios y preferencias
