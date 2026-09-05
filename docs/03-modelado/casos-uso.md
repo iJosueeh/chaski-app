@@ -1,4 +1,4 @@
-# Casos de uso — Chaski
+ # Casos de uso — Chaski
 
 ## 1. Propósito
 
