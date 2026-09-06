@@ -15,6 +15,11 @@ export default function Index() {
       <ThemedText type="default" themeColor="textSecondary" style={styles.email}>
         {user?.email}
       </ThemedText>
+      <TouchableOpacity style={styles.button} onPress={() => router.push('/places' as any)}>
+        <ThemedText type="default" style={styles.buttonText}>
+          Ver lugares
+        </ThemedText>
+      </TouchableOpacity>
       <TouchableOpacity style={styles.button} onPress={() => router.push('/preferences' as any)}>
         <ThemedText type="default" style={styles.buttonText}>
           Ver preferencias

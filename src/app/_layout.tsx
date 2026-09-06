@@ -34,6 +34,8 @@ function RootNavigator() {
         <Stack screenOptions={{ headerShown: false }}>
           <Stack.Screen name="(tabs)" />
           <Stack.Screen name="preferences" />
+          <Stack.Screen name="places" />
+          <Stack.Screen name="place/[id]" />
         </Stack>
       )}
     </ThemeProvider>
