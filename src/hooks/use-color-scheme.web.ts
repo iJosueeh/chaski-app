@@ -1,21 +1,20 @@
-import { useEffect, useState } from 'react';
+import { useSyncExternalStore } from 'react';
 import { useColorScheme as useRNColorScheme } from 'react-native';
 
+const emptySubscribe = () => () => {};
+
 /**
- * To support static rendering, this value needs to be re-calculated on the client side for web
+ * Web: return 'light' on server/static render, the real scheme once hydrated
+ * on the client. useSyncExternalStore avoids setState-in-effect (React 19 lint).
  */
 export function useColorScheme() {
-  const [hasHydrated, setHasHydrated] = useState(false);
-
-  useEffect(() => {
-    setHasHydrated(true);
-  }, []);
-
   const colorScheme = useRNColorScheme();
+  const hydrated = useSyncExternalStore(
+    emptySubscribe,
+    () => true,   // client snapshot
+    () => false,  // server snapshot
+  );
 
-  if (hasHydrated) {
-    return colorScheme;
-  }
-
-  return 'light';
+  if (!hydrated) return 'light';
+  return colorScheme === 'unspecified' ? 'light' : colorScheme;
 }

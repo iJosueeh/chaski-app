@@ -13,7 +13,7 @@ export function CategoriesScreen() {
 
     useEffect(() => {
         loadCategories();
-    }, []);
+    }, [loadCategories]);
 
     const canProceed = selectedIds.length > 0;
 
