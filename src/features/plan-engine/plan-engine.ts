@@ -98,10 +98,12 @@ const VARIANTES: {
   /** Fracción de presupuesto/tiempo usada — fuerza diversidad entre variantes. */
   presupuestoFrac: number;
   tiempoFrac: number;
+  /** Dónde arranca el recorrido: garantiza que la 1.ª parada difiera por variante. */
+  ancla: 'cercana' | 'media' | 'lejana';
 }[] = [
-  { id: 'intimo', maxStops: 3, titulo: 'Ruta Íntima', sesgo: 'point', presupuestoFrac: 0.6, tiempoFrac: 0.55 },
-  { id: 'equilibrado', maxStops: 4, titulo: 'Plan Equilibrado', sesgo: 'recommended', presupuestoFrac: 0.85, tiempoFrac: 0.8 },
-  { id: 'explorador', maxStops: 5, titulo: 'Ruta Exploradora', sesgo: 'casual', presupuestoFrac: 1, tiempoFrac: 1 },
+  { id: 'intimo', maxStops: 3, titulo: 'Ruta Íntima', sesgo: 'point', presupuestoFrac: 0.6, tiempoFrac: 0.55, ancla: 'cercana' },
+  { id: 'equilibrado', maxStops: 4, titulo: 'Plan Equilibrado', sesgo: 'recommended', presupuestoFrac: 0.85, tiempoFrac: 0.8, ancla: 'media' },
+  { id: 'explorador', maxStops: 5, titulo: 'Ruta Exploradora', sesgo: 'casual', presupuestoFrac: 1, tiempoFrac: 1, ancla: 'lejana' },
 ];
 
 export function generarPlanes(
@@ -123,7 +125,8 @@ export function generarPlanes(
     }
     return true;
   });
-  if (candidatos.length < 3) return [];
+  // Con 1-2 candidatos un plan corto sigue siendo válido (mejor honesto que vacío).
+  if (!candidatos.length) return [];
 
   const presupuesto = request.presupuesto ?? 0;
 
@@ -139,7 +142,42 @@ export function generarPlanes(
     let distAcum = 0;
     const usados = new Set<string>();
 
-    for (let i = 0; i < v.maxStops; i++) {
+    // ── Ancla por variante ──────────────────────────────────────────────
+    // Cada plan COMIENZA en un punto distinto (la cercana / la mediana / la
+    // lejana que quepa). Sin esto, las 3 variantes arrancan por el mismo
+    // lugar más cercano y con recursos escasos producen planes clonados.
+    const ordenDist = candidatos
+      .map((l) => ({ l, km: haversineKm(origen.lat!, origen.lng!, l.latitud, l.longitud) }))
+      .sort((a, b) => a.km - b.km);
+    const cabe = (o: { l: Place; km: number }) =>
+      (o.l.gasto_max ?? 0) <= presupuestoV &&
+      trasladoMin(o.km, request.movilidad) + (o.l.duracion_sugerida_min ?? 30) <= minutosV;
+    const viables = ordenDist.filter(cabe);
+    if (viables.length) {
+      const idx =
+        v.ancla === 'cercana' ? 0
+        : v.ancla === 'media' ? Math.floor((viables.length - 1) / 2)
+        : viables.length - 1;
+      const a = viables[idx];
+      const tAncla = trasladoMin(a.km, request.movilidad);
+      usados.add(a.l.id);
+      distAcum += a.km;
+      tiempoAcum += tAncla + (a.l.duracion_sugerida_min ?? 30);
+      costoAcum += a.l.gasto_max ?? 0;
+      paradas.push({
+        place: a.l,
+        orden: 1,
+        llegada: hhmmAdd(request.horaInicio ?? '09:00', tAncla),
+        duracion_min: a.l.duracion_sugerida_min ?? 30,
+        traslado_desde_anterior_min: tAncla,
+        costo_estimado: a.l.gasto_max ?? 0,
+      });
+      lat = a.l.latitud;
+      lon = a.l.longitud;
+    }
+
+    // El ancla ya es la parada 1 → el greedy completo hasta maxStops.
+    for (let i = 1; i < v.maxStops; i++) {
       // Elegir el mejor candidato: más cercano, con bonus por tier-sesgo,
       // descartando los que rompan presupuesto/tiempo.
       let mejor: { lugar: Place; km: number; t: number; score: number } | null = null;
@@ -206,5 +244,15 @@ export function generarPlanes(
       costo_total: costoAcum,
       distancia_km_aprox: Math.round(distAcum * 10) / 10,
     };
-  }).filter((plan) => plan.paradas.length > 0);
+  })
+    .filter((plan) => plan.paradas.length > 0)
+    // Dedup real: si 2 variantes convergen a la MISMA secuencia de lugares
+    // (p. ej. solo 1 lugar cabe), se conserva la primera — N honesto.
+    .filter((plan, idx, todos) => {
+      const firma = plan.paradas.map((p) => p.place.id).join('|');
+      const primero = todos.findIndex(
+        (o) => o.paradas.map((p) => p.place.id).join('|') === firma,
+      );
+      return primero === idx;
+    });
 }

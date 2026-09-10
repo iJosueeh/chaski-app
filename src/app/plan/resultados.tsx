@@ -48,7 +48,7 @@ export default function ResultadosPlanes() {
             Ninguna parada cabe en tu tiempo, presupuesto e intereses. Prueba con más horas o sin filtro de intereses.
           </Text>
           <View style={styles.emptyCtaWrap}>
-            <WizardButton label="AJUSTAR BÚSQUEDA" onPress={() => router.back()} />
+            <WizardButton label="AJUSTAR BÚSQUEDA" onPress={() => router.push('/wizard/intereses')} />
           </View>
         </View>
       ) : (
