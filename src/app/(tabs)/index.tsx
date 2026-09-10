@@ -78,11 +78,17 @@ export default function HomeScreen() {
             </Text>
           </View>
 
-          <View style={[styles.avatar, { borderColor: theme.brand }]}>
-            <Text style={[styles.avatarInitial, { color: theme.brand }]}>
-              {initial}
-            </Text>
-          </View>
+          <TouchableOpacity
+            accessibilityRole="button"
+            accessibilityLabel="Abrir perfil"
+            activeOpacity={0.7}
+            onPress={() => router.push('/(tabs)/perfil')}>
+            <View style={[styles.avatar, { borderColor: theme.brand }]}>
+              <Text style={[styles.avatarInitial, { color: theme.brand }]}>
+                {initial}
+              </Text>
+            </View>
+          </TouchableOpacity>
         </View>
 
         {/* ── Greeting ────────────────────────────────────────────── */}
