@@ -1,6 +1,14 @@
 /**
- * Below are the colors that are used in the app. The colors are defined in the light and dark mode.
- * There are many other ways to style your app. For example, [Nativewind](https://www.nativewind.dev/), [Tamagui](https://tamagui.dev/), [unistyles](https://reactnativeunistyles.vercel.app), etc.
+ * Sistema de diseño Chaski — "Boleto de Experiencias" (Serie AX)
+ * Paleta y tipografías extraídas del diseño oficial de Figma.
+ *
+ * Identidad visual: boleto vintage de transporte, con pergamino crema,
+ * acentos dorados (D4AF37), tinta marrón (4A2E18) y terracota (9C3E1B).
+ *
+ * Se mantienen las claves base (text, background, backgroundElement,
+ * backgroundSelected, textSecondary) para no romper ThemedText/ThemedView,
+ * y se añaden las claves de identidad (primary, accent, brand, surface,
+ * carmine, etc.).
  */
 
 import '@/global.css';
@@ -9,47 +17,61 @@ import { Platform } from 'react-native';
 
 export const Colors = {
   light: {
-    text: '#000000',
-    background: '#ffffff',
-    backgroundElement: '#F0F0F3',
-    backgroundSelected: '#E0E1E6',
-    textSecondary: '#60646C',
+    // --- Claves base (compatibilidad) ---
+    text: '#4A2E18',            // Marrón tinta (texto principal)
+    background: '#FAF5EE',      // Crema pergamino (lienzo)
+    backgroundElement: '#F0E8D8', // Arena (inputs, fondos secundarios)
+    backgroundSelected: '#E8DCC5', // Arena oscura (seleccionado)
+    textSecondary: '#8A7C64',   // Taupe cálido (texto secundario)
+
+    // --- Identidad "Boleto de Experiencias" ---
+    primary: '#9C3E1B',         // Terracota (CTA, botones primarios)
+    primaryDark: '#7A2F15',     // Terracota pressed
+    accent: '#D4AF37',          // Dorado ocre (sellos, recompensas, highlights)
+    brand: '#4A2E18',           // Marrón profundo (logo, tinta)
+    surface: '#FFFDF9',         // Blanco cálido (tarjetas)
+    carmine: '#B71C1C',         // Rojo carmín (acentos de serie, error)
+    error: '#B71C1C',
+    success: '#7A9E6D',         // Verde oliva
+    border: '#E2D7C3',          // Borde sutil (grecas)
+    shadow: 'rgba(74, 46, 24, 0.08)',
+    shadowStrong: 'rgba(74, 46, 24, 0.16)',
   },
   dark: {
-    text: '#ffffff',
-    background: '#000000',
-    backgroundElement: '#212225',
-    backgroundSelected: '#2E3135',
-    textSecondary: '#B0B4BA',
+    text: '#F5EFE4',
+    background: '#1E1712',
+    backgroundElement: '#2A2119',
+    backgroundSelected: '#3A2E22',
+    textSecondary: '#B0A694',
+    primary: '#C25E3A',
+    primaryDark: '#A64D2F',
+    accent: '#D4AF37',
+    brand: '#D4AF37',
+    surface: '#2A2119',
+    carmine: '#E53935',
+    error: '#E53935',
+    success: '#8FBF7F',
+    border: '#3A2E22',
+    shadow: 'rgba(0, 0, 0, 0.3)',
+    shadowStrong: 'rgba(0, 0, 0, 0.5)',
   },
 } as const;
 
 export type ThemeColor = keyof typeof Colors.light & keyof typeof Colors.dark;
 
-export const Fonts = Platform.select({
-  ios: {
-    /** iOS `UIFontDescriptorSystemDesignDefault` */
-    sans: 'system-ui',
-    /** iOS `UIFontDescriptorSystemDesignSerif` */
-    serif: 'ui-serif',
-    /** iOS `UIFontDescriptorSystemDesignRounded` */
-    rounded: 'ui-rounded',
-    /** iOS `UIFontDescriptorSystemDesignMonospaced` */
-    mono: 'ui-monospace',
-  },
-  default: {
-    sans: 'normal',
-    serif: 'serif',
-    rounded: 'normal',
-    mono: 'monospace',
-  },
-  web: {
-    sans: 'var(--font-display)',
-    serif: 'var(--font-serif)',
-    rounded: 'var(--font-rounded)',
-    mono: 'var(--font-mono)',
-  },
-});
+/**
+ * Tipografías del diseño de Figma:
+ * - Cinzel (títulos serif, look de boleto impreso)
+ * - Platypi (headings editoriales)
+ * - Inter (cuerpo de lectura)
+ * - IBM Plex Mono (folios, sellos, numeración de serie)
+ */
+export const Fonts = {
+  serif: 'Cinzel',        // títulos grandes, "CHASKI"
+  display: 'Platypi',     // headings editoriales
+  sans: 'Inter',          // cuerpo
+  mono: 'IBM Plex Mono',  // folios, sellos, "SERIE AX · NRO 00001"
+} as const;
 
 export const Spacing = {
   half: 2,

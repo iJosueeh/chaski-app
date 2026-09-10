@@ -17,19 +17,20 @@ export function PlaceDetailScreen() {
     const [error, setError] = useState('');
 
     useEffect(() => {
-        if (id) loadPlace(id);
+        if (!id) return;
+        let cancelled = false;
+        getPlaceById(id)
+            .then(({ data, error: fetchError }) => {
+                if (cancelled) return;
+                if (fetchError) {
+                    setError(fetchError.message);
+                } else if (data) {
+                    setPlace(data);
+                }
+                setLoading(false);
+            });
+        return () => { cancelled = true; };
     }, [id]);
-
-    const loadPlace = async (placeId: string) => {
-        setLoading(true);
-        const { data, error: fetchError } = await getPlaceById(placeId);
-        if (fetchError) {
-            setError(fetchError.message);
-        } else if (data) {
-            setPlace(data);
-        }
-        setLoading(false);
-    };
 
     if (loading) {
         return (

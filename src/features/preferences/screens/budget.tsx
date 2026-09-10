@@ -16,7 +16,6 @@ export function BudgetScreen() {
     const {
         gastoMin,
         gastoMax,
-        loading,
         setGastoMin,
         setGastoMax,
         savePreferences,

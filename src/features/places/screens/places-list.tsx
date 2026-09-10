@@ -16,19 +16,19 @@ export function PlacesListScreen() {
     const [error, setError] = useState('');
 
     useEffect(() => {
-        loadPlaces();
+        let cancelled = false;
+        getActivePlaces()
+            .then(({ data, error: fetchError }) => {
+                if (cancelled) return;
+                if (fetchError) {
+                    setError(fetchError.message);
+                } else if (data) {
+                    setPlaces(data);
+                }
+                setLoading(false);
+            });
+        return () => { cancelled = true; };
     }, []);
-
-    const loadPlaces = async () => {
-        setLoading(true);
-        const { data, error: fetchError } = await getActivePlaces();
-        if (fetchError) {
-            setError(fetchError.message);
-        } else if (data) {
-            setPlaces(data);
-        }
-        setLoading(false);
-    };
 
     const renderPlace = ({ item }: { item: Place }) => (
         <TouchableOpacity
@@ -82,6 +82,16 @@ export function PlacesListScreen() {
 
     return (
         <ThemedView style={styles.container}>
+            {/* Volver a la pantalla anterior (Home) */}
+            <TouchableOpacity
+                style={styles.backButton}
+                onPress={() => router.back()}
+                accessibilityRole="button"
+            >
+                <ThemedText type="default" style={styles.backText}>
+                    ← Volver
+                </ThemedText>
+            </TouchableOpacity>
             <ThemedText type="subtitle" style={styles.title}>
                 Lugares
             </ThemedText>
@@ -104,6 +114,16 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
     },
+    backButton: {
+        paddingHorizontal: 24,
+        paddingTop: 52,
+        paddingBottom: 4,
+        alignSelf: 'flex-start',
+    },
+    backText: {
+        fontSize: 15,
+        fontWeight: '600',
+    },
     centered: {
         flex: 1,
         justifyContent: 'center',
@@ -111,7 +131,7 @@ const styles = StyleSheet.create({
     },
     title: {
         textAlign: 'center',
-        paddingTop: 64,
+        paddingTop: 12,
         paddingBottom: 16,
     },
     list: {

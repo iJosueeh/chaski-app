@@ -5,6 +5,7 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { useTheme } from '@/hooks/use-theme';
 import { usePreferences } from '@/features/preferences/context/preferences-context';
+import { signOut } from '@/features/auth/services/auth.service';
 
 export function PreferencesScreen() {
     const theme = useTheme();
@@ -72,9 +73,34 @@ export function PreferencesScreen() {
             )}
 
             <ThemedView style={styles.footer}>
-                <TouchableOpacity style={styles.button} onPress={() => router.back()}>
-                    <ThemedText type="default" style={styles.buttonText}>
+                <TouchableOpacity
+                    style={styles.buttonGhost}
+                    onPress={() => {
+                        // Llegar por tab switch deja la pila vacía: back seguro.
+                        if (router.canGoBack()) router.back();
+                        else router.replace('/(tabs)');
+                    }}
+                >
+                    <ThemedText type="default" style={styles.buttonGhostText}>
                         Volver
+                    </ThemedText>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                    style={styles.buttonLogout}
+                    onPress={async () => {
+                        // 1) cerrar sesión en Supabase (el contexto hace el swap del árbol)
+                        await signOut();
+                        // 2) navegación explícita al login. SIN dismissAll(): su
+                        //    POP_TO_TOP aterrizaba sobre el stack de login recién
+                        //    montado (1 pantalla) y generaba el warning "not
+                        //    handled". El swap ya desmonta toda la pila
+                        //    autenticada (wizard/plan), dismissAll es redundante.
+                        router.replace('/login');
+                    }}
+                >
+                    <ThemedText type="default" style={styles.buttonLogoutText}>
+                        Cerrar sesión
                     </ThemedText>
                 </TouchableOpacity>
             </ThemedView>
@@ -129,6 +155,25 @@ const styles = StyleSheet.create({
     footer: {
         alignItems: 'center',
         marginTop: 24,
+        gap: 16,
+    },
+    buttonGhost: {
+        paddingHorizontal: 32,
+        paddingVertical: 12,
+        borderRadius: 8,
+        borderWidth: 1.5,
+    },
+    buttonGhostText: {
+        color: '#9C3E1B', // terracota Serie AX
+    },
+    buttonLogout: {
+        paddingHorizontal: 32,
+        paddingVertical: 12,
+        borderRadius: 8,
+        backgroundColor: '#B71C1C', // carmín Serie AX
+    },
+    buttonLogoutText: {
+        color: '#FFFDF9', // blanco cálido Serie AX
     },
     button: {
         paddingHorizontal: 32,
