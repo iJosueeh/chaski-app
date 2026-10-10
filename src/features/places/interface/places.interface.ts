@@ -32,6 +32,7 @@ export interface Place {
     estado: boolean;
     fuente: string;
     external_id: string | null;
+    tipo_disponibilidad?: string | null;
     fecha_actualizacion: string;
 
     categorias: PlaceCategory[];

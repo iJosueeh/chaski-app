@@ -21,6 +21,8 @@ export type WizardUbicacion = {
   lng: number | null;
 };
 
+export type PlanStrategy = 'GREEDY' | 'BEAM_SEARCH';
+
 export type WizardPlanRequest = {
   ubicacion: WizardUbicacion | null;
   minutosTotales: number | null;
@@ -29,6 +31,9 @@ export type WizardPlanRequest = {
   presupuesto: number | null;
   intereses: string[];
   movilidad: 'caminando' | 'publico' | 'aplicativo' | null;
+  diaSemana?: number; // 1 = Lunes ... 7 = Domingo
+  fecha?: string; // "YYYY-MM-DD" o formato ISO
+  estrategia?: PlanStrategy;
 };
 
 const EMPTY_REQUEST: WizardPlanRequest = {

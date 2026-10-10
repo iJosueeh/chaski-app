@@ -35,7 +35,9 @@ export default function BuscandoPlanes() {
     (async () => {
       const t0 = Date.now();
       const { data: lugares } = await getActivePlaces();
-      const planes = lugares ? generarPlanes(request, lugares) : [];
+      const planes = lugares
+        ? generarPlanes(request, lugares, { strategy: request.estrategia ?? 'BEAM_SEARCH' })
+        : [];
       // dar al menos 2.5s de animación para que se sienta el "buscando"
       const wait = Math.max(0, 2500 - (Date.now() - t0));
       setTimeout(() => {

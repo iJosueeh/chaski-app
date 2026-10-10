@@ -18,6 +18,7 @@ export async function getActivePlaces() {
       estado,
       fuente,
       external_id,
+      tipo_disponibilidad,
       fecha_actualizacion,
 
       horarios_lugar (
@@ -69,6 +70,7 @@ export async function getActivePlaces() {
         estado: place.estado,
         fuente: place.fuente,
         external_id: place.external_id,
+        tipo_disponibilidad: place.tipo_disponibilidad,
         fecha_actualizacion: place.fecha_actualizacion,
 
         horarios: place.horarios_lugar ?? [],
@@ -101,6 +103,7 @@ export async function getPlaceById(placeId: string) {
         estado,
         fuente,
         external_id,
+        tipo_disponibilidad,
         fecha_actualizacion,
 
         horarios_lugar (
@@ -153,6 +156,7 @@ export async function getPlaceById(placeId: string) {
         estado: data?.estado,
         fuente: data?.fuente,
         external_id: data?.external_id,
+        tipo_disponibilidad: data?.tipo_disponibilidad,
         fecha_actualizacion: data?.fecha_actualizacion,
 
         horarios: data?.horarios_lugar ?? [],
