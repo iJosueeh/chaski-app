@@ -5,6 +5,10 @@ export default defineConfig({
   test: {
     globals: true,
     environment: 'node',
+    env: {
+      EXPO_PUBLIC_SUPABASE_URL: 'https://test-project.supabase.co',
+      EXPO_PUBLIC_SUPABASE_KEY: 'test-anon-key',
+    },
   },
   resolve: {
     alias: {

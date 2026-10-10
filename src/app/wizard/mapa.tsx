@@ -17,7 +17,7 @@ import {
   View,
 } from 'react-native';
 import { router } from 'expo-router';
-import MapView, { Marker, type Region } from 'react-native-maps';
+import MapView, { Marker, type Region } from '@/components/ui/map-view';
 import * as Location from 'expo-location';
 
 import { useTheme } from '@/hooks/use-theme';

@@ -20,7 +20,7 @@ import {
 import { router } from 'expo-router';
 import DateTimePicker, {
   type DateTimePickerChangeEvent,
-} from '@react-native-community/datetimepicker';
+} from '@/components/ui/date-time-picker';
 
 import { useTheme } from '@/hooks/use-theme';
 import { useWizard } from '@/features/wizard/context/wizard-context';

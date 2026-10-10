@@ -74,6 +74,15 @@ export function PreferencesScreen() {
 
             <ThemedView style={styles.footer}>
                 <TouchableOpacity
+                    style={[styles.buttonOutline, { borderColor: theme.border }]}
+                    onPress={() => router.push('/change-password')}
+                >
+                    <ThemedText type="default" style={styles.buttonOutlineText}>
+                        Cambiar contraseña
+                    </ThemedText>
+                </TouchableOpacity>
+
+                <TouchableOpacity
                     style={styles.buttonGhost}
                     onPress={() => {
                         // Llegar por tab switch deja la pila vacía: back seguro.
@@ -156,6 +165,18 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         marginTop: 24,
         gap: 16,
+    },
+    buttonOutline: {
+        paddingHorizontal: 28,
+        paddingVertical: 12,
+        borderRadius: 8,
+        borderWidth: 1.5,
+        alignItems: 'center',
+    },
+    buttonOutlineText: {
+        color: '#9C3E1B',
+        fontWeight: '600',
+        letterSpacing: 0.5,
     },
     buttonGhost: {
         paddingHorizontal: 32,

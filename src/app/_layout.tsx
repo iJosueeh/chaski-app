@@ -1,4 +1,4 @@
-import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
+import { DarkTheme, DefaultTheme, Stack, ThemeProvider, usePathname } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useColorScheme } from 'react-native';
 
@@ -13,31 +13,39 @@ SplashScreen.preventAutoHideAsync();
 
 function RootNavigator() {
   const colorScheme = useColorScheme();
-  const { session, loading: authLoading } = useAuth();
+  const { session, loading: authLoading, isPasswordRecovery } = useAuth();
   const { loading: prefsLoading, hasPreferences } = usePreferences();
   const fontsLoaded = useAppFonts();
+  const pathname = usePathname();
 
   if (authLoading || prefsLoading || !fontsLoaded) {
     return null;
   }
 
+  const isRecoveryActive = pathname === '/reset-password' || isPasswordRecovery;
+
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
       <AnimatedSplashOverlay />
-      {!session ? (
+      {isRecoveryActive || !session ? (
         <Stack screenOptions={{ headerShown: false }}>
+          <Stack.Screen name="reset-password" />
           <Stack.Screen name="login" />
           <Stack.Screen name="register" />
+          <Stack.Screen name="forgot-password" />
         </Stack>
       ) : !hasPreferences ? (
         <Stack screenOptions={{ headerShown: false }}>
+          <Stack.Screen name="reset-password" />
           <Stack.Screen name="onboarding-categories" />
           <Stack.Screen name="onboarding-budget" />
         </Stack>
       ) : (
         <Stack screenOptions={{ headerShown: false }}>
+          <Stack.Screen name="reset-password" />
           <Stack.Screen name="(tabs)" />
           <Stack.Screen name="preferences" />
+          <Stack.Screen name="change-password" />
           <Stack.Screen name="places" />
           <Stack.Screen name="place/[id]" />
           <Stack.Screen name="wizard/ubicacion" />
