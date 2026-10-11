@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
     ActivityIndicator,
     KeyboardAvoidingView,
@@ -12,6 +12,7 @@ import {
 import { router } from 'expo-router';
 
 import { Colors, Fonts } from '@/constants/theme';
+import { useAuth } from '@/features/auth/context/auth-context';
 import { signIn } from '@/features/auth/services/auth.service';
 
 /**
@@ -20,10 +21,15 @@ import { signIn } from '@/features/auth/services/auth.service';
  * folio de serie, pergamino crema y acentos dorados.
  */
 export function LoginScreen() {
+    const { setIsPasswordRecovery } = useAuth();
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
+
+    useEffect(() => {
+        setIsPasswordRecovery(false);
+    }, [setIsPasswordRecovery]);
 
     const handleLogin = async () => {
         if (!email || !password) {
@@ -32,6 +38,7 @@ export function LoginScreen() {
         }
         setLoading(true);
         setError('');
+        setIsPasswordRecovery(false);
         const { error: authError } = await signIn({ email, password });
         if (authError) setError(authError.message);
         setLoading(false);

@@ -84,6 +84,7 @@ export function ResetPasswordScreen() {
         if (isMounted) {
           setIsVerified(false);
           setProcessing(false);
+          setIsPasswordRecovery(false);
           setError(
             'No se detectó un enlace de recuperación válido. Para restablecer tu contraseña, solicita un nuevo enlace.',
           );

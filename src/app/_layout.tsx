@@ -28,21 +28,19 @@ function RootNavigator() {
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
       <AnimatedSplashOverlay />
       {isRecoveryActive || !session ? (
-        <Stack screenOptions={{ headerShown: false }}>
-          <Stack.Screen name="reset-password" />
+        <Stack screenOptions={{ headerShown: false }} initialRouteName="login">
           <Stack.Screen name="login" />
           <Stack.Screen name="register" />
           <Stack.Screen name="forgot-password" />
+          <Stack.Screen name="reset-password" />
         </Stack>
       ) : !hasPreferences ? (
-        <Stack screenOptions={{ headerShown: false }}>
-          <Stack.Screen name="reset-password" />
+        <Stack screenOptions={{ headerShown: false }} initialRouteName="onboarding-categories">
           <Stack.Screen name="onboarding-categories" />
           <Stack.Screen name="onboarding-budget" />
         </Stack>
       ) : (
-        <Stack screenOptions={{ headerShown: false }}>
-          <Stack.Screen name="reset-password" />
+        <Stack screenOptions={{ headerShown: false }} initialRouteName="(tabs)">
           <Stack.Screen name="(tabs)" />
           <Stack.Screen name="preferences" />
           <Stack.Screen name="change-password" />
