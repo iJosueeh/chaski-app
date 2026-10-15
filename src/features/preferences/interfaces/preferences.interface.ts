@@ -23,3 +23,26 @@ export interface SavePreferencesRequest {
     gastoMax: number | null;
     categoryIds: string[];
 }
+
+export interface PreferencesFormData {
+    categoryIds: string[];
+    gastoMin: number | null;
+    gastoMax: number | null;
+}
+
+export interface SaveAtomicPreferencesRequest {
+    categoryIds: string[];
+    gastoMin?: number | null;
+    gastoMax?: number | null;
+    movilidadPreferida?: string | null;
+    actualizarMovilidad?: boolean;
+}
+
+export interface SaveAtomicPreferencesResult {
+    success: boolean;
+    usuario_id: string;
+    categories_saved: number;
+    updated_at: string;
+}
+
+

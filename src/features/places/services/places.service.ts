@@ -1,5 +1,50 @@
 import { supabase } from "@/lib/supabase";
-import type { Place } from "../interface/places.interface";
+import type { Place, PlaceImage } from "../interface/places.interface";
+import { getPlaceImageUrl } from "./places-storage.service";
+
+interface RawLugarImagen {
+    id: string;
+    lugar_id: string;
+    storage_path: string;
+    es_portada: boolean;
+    orden: number;
+    created_at?: string;
+}
+
+export function mapPlaceImages(rawImages?: RawLugarImagen[] | null): {
+    imagen_portada: string | null;
+    imagenes: PlaceImage[];
+} {
+    if (!rawImages || !Array.isArray(rawImages) || rawImages.length === 0) {
+        return {
+            imagen_portada: null,
+            imagenes: [],
+        };
+    }
+
+    const sorted = [...rawImages].sort((a, b) => {
+        if (a.orden !== b.orden) return a.orden - b.orden;
+        return (a.created_at || '').localeCompare(b.created_at || '');
+    });
+
+    const portadaRaw = sorted.find(img => img.es_portada) ?? sorted[0] ?? null;
+    const imagen_portada = portadaRaw ? getPlaceImageUrl(portadaRaw.storage_path) : null;
+
+    const imagenes: PlaceImage[] = sorted.map(img => ({
+        id: img.id,
+        lugar_id: img.lugar_id,
+        storage_path: img.storage_path,
+        url: getPlaceImageUrl(img.storage_path) ?? '',
+        es_portada: Boolean(img.es_portada),
+        orden: img.orden,
+        created_at: img.created_at,
+    }));
+
+    return {
+        imagen_portada,
+        imagenes,
+    };
+}
 
 export async function getActivePlaces() {
     const { data, error } = await supabase
@@ -40,6 +85,15 @@ export async function getActivePlaces() {
           id,
           nombre
         )
+      ),
+
+      lugares_imagenes (
+        id,
+        lugar_id,
+        storage_path,
+        es_portada,
+        orden,
+        created_at
       )
     `,
         )
@@ -53,35 +107,53 @@ export async function getActivePlaces() {
         };
     }
 
-    const places: Place[] = (data ?? []).map(place => ({
-        id: place.id,
-        nombre: place.nombre,
-        descripcion: place.descripcion,
+    const places: Place[] = (data ?? []).map(place => {
+        const { imagen_portada, imagenes } = mapPlaceImages(
+            (place as any).lugares_imagenes as RawLugarImagen[] | undefined
+        );
 
-        latitud: place.latitud,
-        longitud: place.longitud,
-        direccion: place.direccion,
+        return {
+            id: place.id,
+            nombre: place.nombre,
+            descripcion: place.descripcion,
+            latitud: place.latitud,
+            longitud: place.longitud,
+            direccion: place.direccion,
+            gasto_min: place.gasto_min,
+            gasto_max: place.gasto_max,
+            duracion_sugerida_min: place.duracion_sugerida_min,
+            estado: place.estado,
+            fuente: place.fuente,
+            external_id: place.external_id,
+            tipo_disponibilidad: place.tipo_disponibilidad,
+            fecha_actualizacion: place.fecha_actualizacion,
+            horarios: place.horarios_lugar ?? [],
+            categorias: (() => {
+                const rawCats: any[] = place.lugares_categorias?.flatMap((relation: any) => relation.categorias ?? []) ?? [];
+                const seenCatIds = new Set<string>();
+                return rawCats.filter(cat => {
+                    if (!cat?.id || seenCatIds.has(cat.id)) return false;
+                    seenCatIds.add(cat.id);
+                    return true;
+                });
+            })(),
+            etiquetas: place.lugares_etiquetas?.flatMap((relation: any) => relation.etiquetas ?? []) ?? [],
+            imagen_portada,
+            imagenes,
+        };
+    });
 
-        gasto_min: place.gasto_min,
-        gasto_max: place.gasto_max,
-
-        duracion_sugerida_min: place.duracion_sugerida_min,
-
-        estado: place.estado,
-        fuente: place.fuente,
-        external_id: place.external_id,
-        tipo_disponibilidad: place.tipo_disponibilidad,
-        fecha_actualizacion: place.fecha_actualizacion,
-
-        horarios: place.horarios_lugar ?? [],
-
-        categorias: place.lugares_categorias?.flatMap(relation => relation.categorias ?? []) ?? [],
-
-        etiquetas: place.lugares_etiquetas?.flatMap(relation => relation.etiquetas ?? []) ?? [],
-    }));
+    const seenIds = new Set<string>();
+    const uniquePlaces: Place[] = [];
+    for (const p of places) {
+        if (!seenIds.has(p.id)) {
+            seenIds.add(p.id);
+            uniquePlaces.push(p);
+        }
+    }
 
     return {
-        data: places,
+        data: uniquePlaces,
         error: null,
     };
 }
@@ -125,6 +197,15 @@ export async function getPlaceById(placeId: string) {
             id,
             nombre
             )
+        ),
+
+        lugares_imagenes (
+            id,
+            lugar_id,
+            storage_path,
+            es_portada,
+            orden,
+            created_at
         )
         `,
         )
@@ -139,31 +220,37 @@ export async function getPlaceById(placeId: string) {
         };
     }
 
+    if (!data) {
+        return {
+            data: null,
+            error: null,
+        };
+    }
+
+    const { imagen_portada, imagenes } = mapPlaceImages(
+        (data as any).lugares_imagenes as RawLugarImagen[] | undefined
+    );
+
     const place: Place = {
-        id: data?.id,
-        nombre: data?.nombre,
-        descripcion: data?.descripcion,
-
-        latitud: data?.latitud,
-        longitud: data?.longitud,
-        direccion: data?.direccion,
-
-        gasto_min: data?.gasto_min,
-        gasto_max: data?.gasto_max,
-
-        duracion_sugerida_min: data?.duracion_sugerida_min,
-
-        estado: data?.estado,
-        fuente: data?.fuente,
-        external_id: data?.external_id,
-        tipo_disponibilidad: data?.tipo_disponibilidad,
-        fecha_actualizacion: data?.fecha_actualizacion,
-
-        horarios: data?.horarios_lugar ?? [],
-
-        categorias: data?.lugares_categorias?.flatMap(relation => relation.categorias ?? []) ?? [],
-
-        etiquetas: data?.lugares_etiquetas?.flatMap(relation => relation.etiquetas ?? []) ?? [],
+        id: data.id,
+        nombre: data.nombre,
+        descripcion: data.descripcion,
+        latitud: data.latitud,
+        longitud: data.longitud,
+        direccion: data.direccion,
+        gasto_min: data.gasto_min,
+        gasto_max: data.gasto_max,
+        duracion_sugerida_min: data.duracion_sugerida_min,
+        estado: data.estado,
+        fuente: data.fuente,
+        external_id: data.external_id,
+        tipo_disponibilidad: data.tipo_disponibilidad,
+        fecha_actualizacion: data.fecha_actualizacion,
+        horarios: data.horarios_lugar ?? [],
+        categorias: data.lugares_categorias?.flatMap((relation: any) => relation.categorias ?? []) ?? [],
+        etiquetas: data.lugares_etiquetas?.flatMap((relation: any) => relation.etiquetas ?? []) ?? [],
+        imagen_portada,
+        imagenes,
     };
 
     return {

@@ -11,6 +11,7 @@
       "icon": "./assets/expo.icon"
     },
     "android": {
+      "package": "com.chaski.app",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
@@ -36,7 +37,14 @@
       "expo-sqlite",
       "@react-native-community/datetimepicker",
       "expo-image",
-      "expo-web-browser"
+      "expo-web-browser",
+      "react-native-maps",
+      [
+        "expo-navigation-bar",
+        {
+          "style": "light"
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

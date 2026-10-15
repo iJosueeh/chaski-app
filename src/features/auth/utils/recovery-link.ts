@@ -7,9 +7,10 @@
  *  3. Tokens de sesión implícitos: setSession({ access_token, refresh_token })
  *
  * No expone credenciales en logs ni almacena tokens sensibles en almacenamiento persistente.
+ *
+ * Este módulo es intencionalmente puro: no importa Supabase. El canje de enlaces
+ * contra Supabase Auth vive en services/recovery.service.ts.
  */
-
-import { supabase } from '@/lib/supabase';
 
 export interface ParsedRecoveryParams {
   code?: string;
@@ -83,6 +84,38 @@ export function parseRecoveryUrl(url: string | null | undefined): ParsedRecovery
   }
 
   return result;
+}
+
+/**
+ * Parámetros de ruta (expo-router) que pueden portar una carga útil de recuperación.
+ */
+export interface RecoveryRouteParams {
+  code?: string;
+  token_hash?: string;
+  type?: string;
+  error?: string;
+  error_description?: string;
+}
+
+/**
+ * Combina los parámetros analizados desde la URL con los parámetros de ruta,
+ * dando prioridad a la URL (query/fragment) sobre la ruta cuando ambos existen.
+ * `accessToken`/`refreshToken` solo existen en el fragmento de la URL.
+ * Operación pura: no depende de Supabase ni de React.
+ */
+export function combineRecoveryParams(
+  urlParams: ParsedRecoveryParams,
+  routeParams: RecoveryRouteParams = {},
+): ParsedRecoveryParams {
+  return {
+    code: urlParams.code || routeParams.code,
+    tokenHash: urlParams.tokenHash || routeParams.token_hash,
+    type: urlParams.type || routeParams.type,
+    accessToken: urlParams.accessToken,
+    refreshToken: urlParams.refreshToken,
+    error: urlParams.error || routeParams.error,
+    errorDescription: urlParams.errorDescription || routeParams.error_description,
+  };
 }
 
 /**
@@ -193,80 +226,4 @@ export function markPayloadFailed(fingerprint: string): void {
  */
 export function resetPayloadRegistry(): void {
   payloadRegistry.clear();
-}
-
-export interface ProcessRecoveryResult {
-  success: boolean;
-  error?: string;
-}
-
-/**
- * Procesa los parámetros de recuperación contra Supabase Auth mediante el mecanismo oficial correspondiente.
- */
-export async function processRecoveryLink(
-  params: ParsedRecoveryParams,
-): Promise<ProcessRecoveryResult> {
-  // Manejo de errores devueltos por el proveedor
-  if (params.error) {
-    return {
-      success: false,
-      error:
-        params.errorDescription ||
-        params.error ||
-        'El enlace de recuperación es inválido o ha expirado.',
-    };
-  }
-
-  // 1. Mecanismo PKCE: código de autorización
-  if (params.code) {
-    const { error } = await supabase.auth.exchangeCodeForSession(params.code);
-    if (error) {
-      return {
-        success: false,
-        error:
-          error.message ||
-          'No se pudo intercambiar el código de autorización. El enlace puede haber expirado.',
-      };
-    }
-    return { success: true };
-  }
-
-  // 2. Mecanismo Token Hash: verifyOtp con tipo recovery
-  if (params.tokenHash) {
-    const { error } = await supabase.auth.verifyOtp({
-      token_hash: params.tokenHash,
-      type: 'recovery',
-    });
-    if (error) {
-      return {
-        success: false,
-        error:
-          error.message ||
-          'El token de recuperación es inválido o ha expirado.',
-      };
-    }
-    return { success: true };
-  }
-
-  // 3. Mecanismo de Tokens de Sesión (Hash fragment)
-  if (params.accessToken && params.refreshToken) {
-    const { error } = await supabase.auth.setSession({
-      access_token: params.accessToken,
-      refresh_token: params.refreshToken,
-    });
-    if (error) {
-      return {
-        success: false,
-        error:
-          error.message ||
-          'No se pudo establecer la sesión de recuperación con los tokens provistos.',
-      };
-    }
-    return { success: true };
-  }
-
-  return {
-    success: false,
-    error: 'El enlace no contiene credenciales de recuperación válidas.',
-  };
 }

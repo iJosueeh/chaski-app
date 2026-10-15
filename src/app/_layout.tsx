@@ -1,8 +1,9 @@
 import { DarkTheme, DefaultTheme, Stack, ThemeProvider, usePathname } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
-import { useColorScheme } from 'react-native';
+import { ActivityIndicator, View, useColorScheme } from 'react-native';
 
 import { AnimatedSplashOverlay } from '@/components/animated-icon';
+import { Colors } from '@/constants/theme';
 import { AuthProvider, useAuth } from '@/features/auth/context/auth-context';
 import { PreferencesProvider, usePreferences } from '@/features/preferences/context/preferences-context';
 import { WizardProvider } from '@/features/wizard/context/wizard-context';
@@ -13,16 +14,31 @@ SplashScreen.preventAutoHideAsync();
 
 function RootNavigator() {
   const colorScheme = useColorScheme();
-  const { session, loading: authLoading, isPasswordRecovery } = useAuth();
-  const { loading: prefsLoading, hasPreferences } = usePreferences();
+  const { session, loading: authLoading, isPasswordRecovery, isRecoveryVerified } = useAuth();
+  const { initialLoading: prefsInitialLoading, hasPreferences } = usePreferences();
   const fontsLoaded = useAppFonts();
   const pathname = usePathname();
 
-  if (authLoading || prefsLoading || !fontsLoaded) {
-    return null;
-  }
+  const isRecoveryActive =
+    pathname === '/verify-otp' ||
+    pathname === '/reset-password' ||
+    isPasswordRecovery ||
+    isRecoveryVerified;
 
-  const isRecoveryActive = pathname === '/reset-password' || isPasswordRecovery;
+  if (authLoading || (!isRecoveryActive && prefsInitialLoading) || !fontsLoaded) {
+    return (
+      <View
+        style={{
+          flex: 1,
+          backgroundColor: Colors.light.background,
+          justifyContent: 'center',
+          alignItems: 'center',
+        }}
+      >
+        <ActivityIndicator size="large" color={Colors.light.primary} />
+      </View>
+    );
+  }
 
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
@@ -32,6 +48,7 @@ function RootNavigator() {
           <Stack.Screen name="login" />
           <Stack.Screen name="register" />
           <Stack.Screen name="forgot-password" />
+          <Stack.Screen name="verify-otp" />
           <Stack.Screen name="reset-password" />
         </Stack>
       ) : !hasPreferences ? (
@@ -42,8 +59,11 @@ function RootNavigator() {
       ) : (
         <Stack screenOptions={{ headerShown: false }} initialRouteName="(tabs)">
           <Stack.Screen name="(tabs)" />
+          <Stack.Screen name="onboarding-categories" />
+          <Stack.Screen name="onboarding-budget" />
           <Stack.Screen name="preferences" />
           <Stack.Screen name="change-password" />
+          <Stack.Screen name="admin" />
           <Stack.Screen name="places" />
           <Stack.Screen name="place/[id]" />
           <Stack.Screen name="wizard/ubicacion" />

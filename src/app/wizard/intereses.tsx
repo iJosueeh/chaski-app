@@ -1,12 +1,13 @@
 /**
- * Wizard — Paso 4 de 5: INTERESES (stub funcional).
- * Chips multiselección simples; se reemplaza por la grilla completa del Figma.
+ * Wizard — Paso 4 de 5: INTERESES (Serie AX).
+ * Selección de afinidades culturales para afinar la expedición.
  */
 import { useState } from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { router } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { useTheme } from '@/hooks/use-theme';
+import { Colors, Fonts } from '@/constants/theme';
 import { useWizard } from '@/features/wizard/context/wizard-context';
 import {
   StepIndicator,
@@ -15,11 +16,21 @@ import {
   WizardHeading,
   WizardTopBar,
 } from '@/features/wizard/components/wizard-ui';
+import { safeBackWizard, safeCancelWizard } from '@/features/wizard/utils/wizard-navigation';
 
-const OPCIONES = ['Gastronomía', 'Cultura', 'Naturaleza', 'Historia', 'Compras', 'Nocturno'];
+const palette = Colors.light;
+
+const OPCIONES = [
+  'Gastronomía',
+  'Cultura',
+  'Naturaleza',
+  'Historia',
+  'Compras',
+  'Nocturno',
+];
 
 export default function WizardIntereses() {
-  const theme = useTheme();
+  const insets = useSafeAreaInsets();
   const { request, setIntereses } = useWizard();
   const [sel, setSel] = useState<string[]>(request.intereses);
 
@@ -32,34 +43,46 @@ export default function WizardIntereses() {
   };
 
   return (
-    <View style={[styles.canvas, { backgroundColor: theme.background }]}>
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        <WizardTopBar onBack={() => router.back()} onCancel={() => { router.dismissAll(); router.back(); }} />
-        <TocapuStrip />
+    <View style={[styles.canvas, { backgroundColor: palette.background }]}>
+      <WizardTopBar
+        onBack={() => safeBackWizard('/wizard/presupuesto')}
+        onCancel={safeCancelWizard}
+      />
+      <TocapuStrip />
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         <View style={styles.block}>
           <WizardHeading
             title="¿Qué te provoca hacer?"
-            subtitle="Elige uno o varios intereses"
+            subtitle="Elige una o varias afinidades culturales"
           />
         </View>
+
         <View style={styles.chips}>
           {OPCIONES.map((op) => {
             const active = sel.includes(op);
             return (
-              <TouchableOpacity key={op} activeOpacity={0.8} onPress={() => toggle(op)}>
+              <TouchableOpacity
+                key={op}
+                activeOpacity={0.8}
+                onPress={() => toggle(op)}
+                accessibilityRole="button"
+                accessibilityLabel={`Interés: ${op}, ${active ? 'seleccionado' : 'no seleccionado'}`}
+              >
                 <View
                   style={[
                     styles.chip,
                     {
-                      backgroundColor: active ? theme.brand : theme.surface,
-                      borderColor: theme.brand,
+                      backgroundColor: active ? palette.brand : palette.surface,
+                      borderColor: active ? palette.brand : palette.border,
                     },
-                  ]}>
+                  ]}
+                >
                   <Text
                     style={[
                       styles.chipText,
-                      { color: active ? theme.surface : theme.brand },
-                    ]}>
+                      { color: active ? palette.surface : palette.brand },
+                    ]}
+                  >
                     {op}
                   </Text>
                 </View>
@@ -67,6 +90,7 @@ export default function WizardIntereses() {
             );
           })}
         </View>
+
         <View style={styles.btnWrap}>
           <WizardButton
             label={sel.length ? `CONTINUAR (${sel.length} SELECCIONADOS)` : 'CONTINUAR'}
@@ -74,7 +98,16 @@ export default function WizardIntereses() {
           />
         </View>
       </ScrollView>
-      <View style={[styles.footer, { backgroundColor: theme.background }]}>
+
+      <View
+        style={[
+          styles.footer,
+          {
+            backgroundColor: palette.background,
+            paddingBottom: Math.max(insets.bottom, 12) + 6,
+          },
+        ]}
+      >
         <StepIndicator step={4} />
       </View>
     </View>
@@ -84,25 +117,26 @@ export default function WizardIntereses() {
 const styles = StyleSheet.create({
   canvas: { flex: 1 },
   scrollContent: { paddingBottom: 24 },
-  block: { paddingHorizontal: 20, paddingTop: 16 },
+  block: { paddingHorizontal: 20, paddingTop: 14 },
   chips: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 10,
     paddingHorizontal: 20,
-    marginTop: 20,
+    marginTop: 18,
   },
   chip: {
     borderWidth: 1.5,
-    borderRadius: 2,
+    borderRadius: 6,
     paddingHorizontal: 16,
     paddingVertical: 10,
   },
   chipText: {
-    fontFamily: 'IBMPlexMono_600SemiBold',
+    fontFamily: Fonts.mono,
     fontSize: 12,
+    fontWeight: '700',
     letterSpacing: 0.5,
   },
   btnWrap: { paddingHorizontal: 20, marginTop: 24 },
-  footer: { paddingHorizontal: 20, paddingTop: 10 },
+  footer: { paddingHorizontal: 20, paddingTop: 6 },
 });

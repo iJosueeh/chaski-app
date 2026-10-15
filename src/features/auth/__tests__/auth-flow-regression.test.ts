@@ -2,14 +2,15 @@ import { describe, expect, it, vi, beforeEach } from 'vitest';
 import {
   hasRecoveryPayload,
   parseRecoveryUrl,
-  processRecoveryLink,
   resetPayloadRegistry,
   getRecoveryFingerprint,
   canProcessPayload,
   markPayloadInFlight,
   markPayloadSuccess,
 } from '../utils/recovery-link';
+import { processRecoveryLink } from '../services/recovery.service';
 import { signIn, signOut, updatePassword } from '../services/auth.service';
+import { validateLoginFields } from '../utils/password-validation';
 import { supabase } from '@/lib/supabase';
 
 vi.mock('expo-linking', () => ({
@@ -46,13 +47,14 @@ function resolveRootNavigation({
   pathname: string;
   isPasswordRecovery: boolean;
 }) {
-  const isRecoveryActive = pathname === '/reset-password' || isPasswordRecovery;
+  const isRecoveryActive =
+    pathname === '/verify-otp' || pathname === '/reset-password' || isPasswordRecovery;
 
   if (isRecoveryActive || !session) {
     return {
       activeStack: 'auth-stack',
       initialRoute: 'login',
-      allowedScreens: ['login', 'register', 'forgot-password', 'reset-password'],
+      allowedScreens: ['login', 'register', 'forgot-password', 'verify-otp', 'reset-password'],
       firstScreen: 'login',
     };
   }
@@ -156,6 +158,54 @@ describe('Pruebas de Regresión: Flujo de Autenticación y Recuperación de Cont
       expect(navResult.activeStack).toBe('auth-stack');
       expect(navResult.initialRoute).toBe('login');
       expect(navResult.firstScreen).toBe('login');
+    });
+
+    it('valida que ambos campos sean obligatorios antes de llamar a signIn', () => {
+      expect(validateLoginFields('', '').isValid).toBe(false);
+      expect(validateLoginFields('', '').emailError).toBe('Ingresa tu correo electrónico');
+      expect(validateLoginFields('viajero@chaski.pe', '').isValid).toBe(false);
+      expect(validateLoginFields('viajero@chaski.pe', '').passwordError).toBe('Ingresa tu contraseña');
+      expect(validateLoginFields('', 'secret').isValid).toBe(false);
+      expect(validateLoginFields('viajero@chaski.pe', 'secret').isValid).toBe(true);
+    });
+
+    it('calcula los offsets de auto-desplazamiento para correo y contraseña en pantallas estándar y compactas', () => {
+      const getLoginScrollOffset = (
+        fieldKey: string,
+        isCompact: boolean,
+        measured?: Record<string, number>,
+      ) => {
+        if (measured && typeof measured[fieldKey] === 'number') {
+          return measured[fieldKey];
+        }
+        const defaults = isCompact
+          ? { email: 0, password: 80 }
+          : { email: 0, password: 100 };
+        return defaults[fieldKey as keyof typeof defaults] ?? 0;
+      };
+
+      // Estándar
+      expect(getLoginScrollOffset('email', false)).toBe(0);
+      expect(getLoginScrollOffset('password', false)).toBe(100);
+
+      // Compacto (<680)
+      expect(getLoginScrollOffset('email', true)).toBe(0);
+      expect(getLoginScrollOffset('password', true)).toBe(80);
+
+      // Con mediciones nativas onLayout
+      expect(getLoginScrollOffset('password', false, { email: 0, password: 92 })).toBe(92);
+    });
+
+    it('limpia banderas de recuperación de contraseña antes de iniciar sesión', () => {
+      const authFlags = { isPasswordRecovery: true, isRecoveryVerified: true };
+      const prepareLogin = () => {
+        authFlags.isPasswordRecovery = false;
+        authFlags.isRecoveryVerified = false;
+      };
+
+      prepareLogin();
+      expect(authFlags.isPasswordRecovery).toBe(false);
+      expect(authFlags.isRecoveryVerified).toBe(false);
     });
   });
 

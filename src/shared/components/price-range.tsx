@@ -1,54 +1,45 @@
-import { StyleSheet } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
+import { Colors, Fonts } from '@/constants/theme';
+import { formatPlaceBudget } from '@/features/places/utils/places-formatters';
 
 type Props = {
     min: number | null;
     max: number | null;
 };
 
+/**
+ * Presupuesto de un destino en clave de boleto (Serie AX).
+ * Etiqueta mono compacta: única fuente de verdad en `formatPlaceBudget`.
+ */
 export function PriceRange({ min, max }: Props) {
-    const isMinZero = min === 0 || min === null;
-    const isMaxZero = max === 0 || max === null;
-
-    if (isMinZero && isMaxZero) {
-        return (
-            <ThemedView style={styles.container}>
-                <ThemedText type="small" style={styles.freeText}>
-                    Entrada gratis
-                </ThemedText>
-            </ThemedView>
-        );
-    }
+    const { label, isFree } = formatPlaceBudget(min, max);
 
     return (
-        <ThemedView style={styles.container}>
-            {min != null && min > 0 ? (
-                <ThemedText type="small" themeColor="textSecondary">
-                    Desde S/{min}
-                </ThemedText>
-            ) : isMinZero ? (
-                <ThemedText type="small" style={styles.freeText}>
-                    Entrada gratis
-                </ThemedText>
-            ) : null}
-            {max != null && (
-                <ThemedText type="small" themeColor="textSecondary">
-                    Hasta S/{max}
-                </ThemedText>
-            )}
-        </ThemedView>
+        <View style={styles.container}>
+            <Text
+                style={[
+                    styles.value,
+                    { color: isFree ? Colors.light.success : Colors.light.primary },
+                ]}
+            >
+                {isFree ? '◆ ' : ''}
+                {label}
+            </Text>
+        </View>
     );
 }
 
 const styles = StyleSheet.create({
     container: {
         flexDirection: 'row',
-        gap: 16,
+        alignItems: 'center',
+        gap: 8,
     },
-    freeText: {
-        color: '#4caf50',
-        fontWeight: '600',
+    value: {
+        fontFamily: Fonts.mono,
+        fontSize: 12,
+        fontWeight: '700',
+        letterSpacing: 0.4,
     },
 });

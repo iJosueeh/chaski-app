@@ -1,7 +1,6 @@
-import { StyleSheet } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
+import { Colors, Fonts } from '@/constants/theme';
 import type { PlaceSchedule } from '@/features/places/interface/places.interface';
 
 const DIAS_SEMANA = ['', 'Lunes', 'Martes', 'Miercoles', 'Jueves', 'Viernes', 'Sabado', 'Domingo'];
@@ -16,43 +15,71 @@ type Props = {
     horarios: PlaceSchedule[];
 };
 
+/**
+ * Horarios de un destino en formato de boleto (Serie AX):
+ * días en Inter y tramos horarios en IBM Plex Mono, separados por filete punteado.
+ */
 export function ScheduleDisplay({ horarios }: Props) {
     if (horarios.length === 0) {
         return (
-            <ThemedText type="small" themeColor="textSecondary">
+            <Text style={[styles.empty, { color: Colors.light.textSecondary }]}>
                 Sin horarios disponibles
-            </ThemedText>
+            </Text>
         );
     }
 
     const sorted = [...horarios].sort((a, b) => a.dia_semana - b.dia_semana);
 
     return (
-        <ThemedView style={styles.container}>
-            {sorted.map(schedule => (
-                <ThemedView key={schedule.id} style={styles.row}>
-                    <ThemedText type="small" style={styles.day}>
+        <View style={styles.container}>
+            {sorted.map((schedule, index) => (
+                <View
+                    key={schedule.id}
+                    style={[
+                        styles.row,
+                        index < sorted.length - 1 && {
+                            borderBottomWidth: 1,
+                            borderBottomColor: Colors.light.border,
+                            borderStyle: 'dashed',
+                        },
+                    ]}
+                >
+                    <Text style={[styles.day, { color: Colors.light.brand }]}>
                         {DIAS_SEMANA[schedule.dia_semana]}
-                    </ThemedText>
-                    <ThemedText type="small" themeColor="textSecondary">
+                    </Text>
+                    <Text style={[styles.hours, { color: Colors.light.primary }]}>
                         {formatTime(schedule.hora_apertura)} - {formatTime(schedule.hora_cierre)}
-                    </ThemedText>
-                </ThemedView>
+                    </Text>
+                </View>
             ))}
-        </ThemedView>
+        </View>
     );
 }
 
 const styles = StyleSheet.create({
     container: {
-        gap: 4,
+        gap: 0,
     },
     row: {
         flexDirection: 'row',
         justifyContent: 'space-between',
+        alignItems: 'center',
+        paddingVertical: 7,
     },
     day: {
-        width: 100,
-        fontWeight: '500',
+        fontFamily: Fonts.sans,
+        fontSize: 13,
+        fontWeight: '600',
+    },
+    hours: {
+        fontFamily: Fonts.mono,
+        fontSize: 12,
+        fontWeight: '600',
+        letterSpacing: 0.4,
+    },
+    empty: {
+        fontFamily: Fonts.sans,
+        fontSize: 12.5,
+        fontStyle: 'italic',
     },
 });

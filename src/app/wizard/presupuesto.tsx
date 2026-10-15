@@ -1,12 +1,9 @@
 /**
- * Wizard — Paso 3 de 5: PRESUPUESTO (completo, según Figma).
+ * Wizard — Paso 3 de 5: PRESUPUESTO (Serie AX).
  *
- * Estructura del frame "Presupuesto (Con Cancelación)":
+ * Estructura del frame "Presupuesto":
  * monto grande en Cinzel (S/XX) + slider (S/0 - S/200, paso S/5)
  * + chips de monto rápido + CTA CONTINUAR.
- *
- * Lógica: S/0 es válido (museos gratis); el motor usará este valor como
- * tope de la suma de entradas de las paradas del plan.
  */
 import { useState } from 'react';
 import {
@@ -18,8 +15,9 @@ import {
 } from 'react-native';
 import { router } from 'expo-router';
 import Slider from '@react-native-community/slider';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { useTheme } from '@/hooks/use-theme';
+import { Colors, Fonts } from '@/constants/theme';
 import { useWizard } from '@/features/wizard/context/wizard-context';
 import {
   StepIndicator,
@@ -28,14 +26,16 @@ import {
   WizardHeading,
   WizardTopBar,
 } from '@/features/wizard/components/wizard-ui';
+import { safeBackWizard, safeCancelWizard } from '@/features/wizard/utils/wizard-navigation';
+
+const palette = Colors.light;
 
 const MAX = 200;
 const PASO = 5;
-
 const CHIPS = [20, 50, 100, 200];
 
 export default function WizardPresupuesto() {
-  const theme = useTheme();
+  const insets = useSafeAreaInsets();
   const { request, setPresupuesto } = useWizard();
 
   const [monto, setMonto] = useState<number>(request.presupuesto ?? 50);
@@ -46,29 +46,28 @@ export default function WizardPresupuesto() {
   };
 
   return (
-    <View style={[styles.canvas, { backgroundColor: theme.background }]}>
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        <WizardTopBar
-          onBack={() => router.back()}
-          onCancel={() => {
-            router.dismissAll();
-            router.back();
-          }}
-        />
-        <TocapuStrip />
+    <View style={[styles.canvas, { backgroundColor: palette.background }]}>
+      <WizardTopBar
+        onBack={() => safeBackWizard('/wizard/tiempo')}
+        onCancel={safeCancelWizard}
+      />
+      <TocapuStrip />
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         <View style={styles.block}>
           <WizardHeading
             title="¿Cuánto quieres gastar?"
-            subtitle="Tu tope de gasto para todo el plan"
+            subtitle="Tu tope de gasto estimado para la ruta"
           />
         </View>
 
         {/* Monto grande */}
-        <View style={styles.montoWrap}>
-          <Text style={[styles.montoKicker, { color: theme.primary }]}>PRESUPUESTO TOTAL</Text>
-          <Text style={[styles.monto, { color: theme.brand }]}>S/ {monto}</Text>
-          <Text style={[styles.montoNota, { color: theme.textSecondary }]}>
-            {monto === 0 ? 'Solo experiencias gratuitas' : `Hasta ${Math.floor(monto / 10)} paradas con entrada S/10 aprox.`}
+        <View style={[styles.montoWrap, { backgroundColor: palette.surface, borderColor: palette.border }]}>
+          <Text style={[styles.montoKicker, { color: palette.primary }]}>PRESUPUESTO TOTAL</Text>
+          <Text style={[styles.monto, { color: palette.brand }]}>S/ {monto}</Text>
+          <Text style={[styles.montoNota, { color: palette.textSecondary }]}>
+            {monto === 0
+              ? 'Solo experiencias gratuitas'
+              : `Hasta ${Math.floor(monto / 10)} paradas con entrada aproximada`}
           </Text>
         </View>
 
@@ -80,38 +79,52 @@ export default function WizardPresupuesto() {
             step={PASO}
             value={monto}
             onValueChange={setMonto}
-            minimumTrackTintColor={theme.carmine}
-            maximumTrackTintColor={theme.border}
-            thumbTintColor={theme.carmine}
+            minimumTrackTintColor={palette.burgundy}
+            maximumTrackTintColor={palette.border}
+            thumbTintColor={palette.primary}
           />
           <View style={styles.escalaRow}>
-            <Text style={[styles.escala, { color: theme.textSecondary }]}>S/0</Text>
-            <Text style={[styles.escala, { color: theme.textSecondary }]}>S/{MAX}</Text>
+            <Text style={[styles.escala, { color: palette.textSecondary }]}>S/0</Text>
+            <Text style={[styles.escala, { color: palette.textSecondary }]}>S/{MAX}</Text>
           </View>
         </View>
 
         {/* Chips de monto rápido */}
         <View style={styles.chipsRow}>
-          <Text style={[styles.chipsLabel, { color: theme.primary }]}>ACCESO RÁPIDO:</Text>
-          {CHIPS.map((v) => {
-            const activo = monto === v;
-            return (
-              <TouchableOpacity key={v} activeOpacity={0.8} onPress={() => setMonto(v)}>
-                <View
-                  style={[
-                    styles.chip,
-                    {
-                      backgroundColor: activo ? theme.brand : theme.surface,
-                      borderColor: theme.brand,
-                    },
-                  ]}>
-                  <Text style={[styles.chipText, { color: activo ? theme.surface : theme.brand }]}>
-                    S/{v}
-                  </Text>
-                </View>
-              </TouchableOpacity>
-            );
-          })}
+          <Text style={[styles.chipsLabel, { color: palette.primary }]}>ACCESO RÁPIDO:</Text>
+          <View style={styles.chipsGroup}>
+            {CHIPS.map((v) => {
+              const activo = monto === v;
+              return (
+                <TouchableOpacity
+                  key={v}
+                  activeOpacity={0.8}
+                  onPress={() => setMonto(v)}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Presupuesto S/${v}`}
+                >
+                  <View
+                    style={[
+                      styles.chip,
+                      {
+                        backgroundColor: activo ? palette.brand : palette.surface,
+                        borderColor: activo ? palette.brand : palette.border,
+                      },
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.chipText,
+                        { color: activo ? palette.surface : palette.brand },
+                      ]}
+                    >
+                      S/{v}
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
         </View>
 
         <View style={styles.btnWrap}>
@@ -119,7 +132,15 @@ export default function WizardPresupuesto() {
         </View>
       </ScrollView>
 
-      <View style={[styles.footer, { backgroundColor: theme.background }]}>
+      <View
+        style={[
+          styles.footer,
+          {
+            backgroundColor: palette.background,
+            paddingBottom: Math.max(insets.bottom, 12) + 6,
+          },
+        ]}
+      >
         <StepIndicator step={3} />
       </View>
     </View>
@@ -129,60 +150,74 @@ export default function WizardPresupuesto() {
 const styles = StyleSheet.create({
   canvas: { flex: 1 },
   scrollContent: { paddingBottom: 24 },
-  block: { paddingHorizontal: 20, paddingTop: 16 },
-  montoWrap: { alignItems: 'center', marginTop: 20 },
+  block: { paddingHorizontal: 20, paddingTop: 14 },
+  montoWrap: {
+    marginHorizontal: 20,
+    marginTop: 16,
+    padding: 16,
+    borderRadius: 8,
+    borderWidth: 1.5,
+    alignItems: 'center',
+    gap: 4,
+  },
   montoKicker: {
-    fontFamily: 'IBMPlexMono_600SemiBold',
-    fontSize: 10,
+    fontFamily: Fonts.mono,
+    fontSize: 9,
+    fontWeight: '700',
     letterSpacing: 2,
   },
   monto: {
-    fontFamily: 'Cinzel_700Bold',
-    fontSize: 52,
-    lineHeight: 64,
-    marginTop: 4,
+    fontFamily: Fonts.serif,
+    fontSize: 36,
+    fontWeight: '700',
   },
   montoNota: {
-    fontFamily: 'IBMPlexMono_400Regular',
-    fontSize: 10,
-    marginTop: 4,
+    fontFamily: Fonts.sans,
+    fontSize: 11.5,
     textAlign: 'center',
-    paddingHorizontal: 40,
-  },
-  sliderWrap: { paddingHorizontal: 24, marginTop: 24 },
-  escalaRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
     marginTop: 2,
   },
-  escala: {
-    fontFamily: 'IBMPlexMono_400Regular',
-    fontSize: 9,
-  },
-  chipsRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    alignItems: 'center',
-    gap: 10,
+  sliderWrap: {
     paddingHorizontal: 20,
     marginTop: 20,
   },
+  escalaRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingHorizontal: 4,
+    marginTop: 4,
+  },
+  escala: {
+    fontFamily: Fonts.mono,
+    fontSize: 10,
+    fontWeight: '700',
+  },
+  chipsRow: {
+    paddingHorizontal: 20,
+    marginTop: 18,
+    gap: 8,
+  },
   chipsLabel: {
-    fontFamily: 'IBMPlexMono_400Regular',
-    fontSize: 8,
+    fontFamily: Fonts.mono,
+    fontSize: 8.5,
+    fontWeight: '700',
     letterSpacing: 1,
+  },
+  chipsGroup: {
+    flexDirection: 'row',
+    gap: 8,
   },
   chip: {
     borderWidth: 1.5,
-    borderRadius: 2,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
+    borderRadius: 4,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
   },
   chipText: {
-    fontFamily: 'IBMPlexMono_600SemiBold',
+    fontFamily: Fonts.mono,
     fontSize: 11,
-    letterSpacing: 0.5,
+    fontWeight: '700',
   },
   btnWrap: { paddingHorizontal: 20, marginTop: 24 },
-  footer: { paddingHorizontal: 20, paddingTop: 10 },
+  footer: { paddingHorizontal: 20, paddingTop: 6 },
 });

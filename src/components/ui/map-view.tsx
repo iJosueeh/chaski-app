@@ -1,5 +1,15 @@
-import MapView, { Marker, type Region, type MapViewProps, type MapMarkerProps as MarkerProps } from 'react-native-maps';
+import MapView, {
+  Marker,
+  UrlTile,
+  PROVIDER_GOOGLE,
+  PROVIDER_DEFAULT,
+  type Region,
+  type MapViewProps,
+  type MapMarkerProps as MarkerProps,
+  type MapUrlTileProps as UrlTileProps,
+} from 'react-native-maps';
 
 export default MapView;
-export { Marker };
-export type { Region, MapViewProps, MarkerProps };
+export { Marker, UrlTile, PROVIDER_GOOGLE, PROVIDER_DEFAULT };
+export type { Region, MapViewProps, MarkerProps, UrlTileProps };
+

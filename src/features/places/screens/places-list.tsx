@@ -1,179 +1,251 @@
-import { useEffect, useState } from 'react';
-import { ActivityIndicator, FlatList, StyleSheet, TouchableOpacity } from 'react-native';
-import { router } from 'expo-router';
+import {
+  FlatList,
+  RefreshControl,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import { router } from "expo-router";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { useTheme } from '@/hooks/use-theme';
-import { getActivePlaces } from '@/features/places/services/places.service';
-import type { Place } from '@/features/places/interface/places.interface';
-import { PriceRange } from '@/shared';
+import { Colors, Fonts } from "@/constants/theme";
+import { TocapuStrip } from "@/features/wizard/components/wizard-ui";
+import { AndeanTransitStamp } from "@/features/auth/components/andean-transit-stamp";
+import { usePlaces } from "@/features/places/hooks";
+import {
+  PlaceEmptyState,
+  PlaceErrorState,
+  PlaceLoadingState,
+  PlaceTicketCard,
+} from "@/features/places/components";
+
+const palette = Colors.light;
 
 export function PlacesListScreen() {
-    const theme = useTheme();
-    const [places, setPlaces] = useState<Place[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState('');
+  const insets = useSafeAreaInsets();
+  const { places, loading, refreshing, errorKind, reload, refresh } =
+    usePlaces();
 
-    useEffect(() => {
-        let cancelled = false;
-        getActivePlaces()
-            .then(({ data, error: fetchError }) => {
-                if (cancelled) return;
-                if (fetchError) {
-                    setError(fetchError.message);
-                } else if (data) {
-                    setPlaces(data);
-                }
-                setLoading(false);
-            });
-        return () => { cancelled = true; };
-    }, []);
+  const errorMessage =
+    errorKind === "service"
+      ? "El servicio de destinos no respondió. Revisa tu conexión e inténtalo de nuevo."
+      : errorKind === "network"
+        ? "Sin conexión con el catálogo patrimonial. Vuelve a intentarlo en unos segundos."
+        : null;
 
-    const renderPlace = ({ item }: { item: Place }) => (
-        <TouchableOpacity
-            style={[styles.card, { backgroundColor: theme.backgroundElement, borderColor: theme.backgroundSelected }]}
-            onPress={() => router.push(`/place/${item.id}` as any)}
-        >
-            <ThemedText type="default" style={styles.placeName}>
-                {item.nombre}
-            </ThemedText>
+  const handleBack = () => router.back();
+  const handleOpenPlace = (id: string) => router.push(`/place/${id}` as any);
 
-            {item.direccion && (
-                <ThemedText type="small" themeColor="textSecondary" style={styles.address}>
-                    {item.direccion}
-                </ThemedText>
-            )}
+  const countLabel =
+    places.length === 1
+      ? "1 destino activo"
+      : `${places.length} destinos activos`;
 
-            <ThemedView style={styles.chipsContainer}>
-                {item.categorias.slice(0, 3).map(category => (
-                    <ThemedView
-                        key={category.id}
-                        style={[styles.chip, { backgroundColor: theme.backgroundSelected }]}
-                    >
-                        <ThemedText type="small" style={styles.chipText}>
-                            {category.nombre}
-                        </ThemedText>
-                    </ThemedView>
-                ))}
-            </ThemedView>
-
-            <ThemedView style={styles.budgetRow}>
-                <PriceRange min={item.gasto_min} max={item.gasto_max} />
-            </ThemedView>
-        </TouchableOpacity>
-    );
-
-    if (loading) {
-        return (
-            <ThemedView style={styles.centered}>
-                <ActivityIndicator size="large" />
-            </ThemedView>
-        );
-    }
-
-    if (error) {
-        return (
-            <ThemedView style={styles.centered}>
-                <ThemedText type="default" style={styles.errorText}>{error}</ThemedText>
-            </ThemedView>
-        );
-    }
-
+  if (loading) {
     return (
-        <ThemedView style={styles.container}>
-            {/* Volver a la pantalla anterior (Home) */}
-            <TouchableOpacity
-                style={styles.backButton}
-                onPress={() => router.back()}
-                accessibilityRole="button"
-            >
-                <ThemedText type="default" style={styles.backText}>
-                    ← Volver
-                </ThemedText>
-            </TouchableOpacity>
-            <ThemedText type="subtitle" style={styles.title}>
-                Lugares
-            </ThemedText>
-            <FlatList
-                data={places}
-                keyExtractor={item => item.id}
-                renderItem={renderPlace}
-                contentContainerStyle={styles.list}
-                ListEmptyComponent={
-                    <ThemedText type="default" themeColor="textSecondary" style={styles.empty}>
-                        No hay lugares disponibles
-                    </ThemedText>
-                }
-            />
-        </ThemedView>
+      <View style={[styles.canvas, { backgroundColor: palette.background }]}>
+        <PlaceLoadingState message="Consultando catálogo patrimonial…" />
+      </View>
     );
+  }
+
+  if (errorMessage) {
+    return (
+      <View style={[styles.canvas, { backgroundColor: palette.background }]}>
+        <View
+          style={[
+            styles.stateWrapper,
+            {
+              paddingTop: Math.max(insets.top, 16) + 24,
+              paddingBottom: insets.bottom + 24,
+            },
+          ]}
+        >
+          <PlaceErrorState
+            message={errorMessage}
+            onRetry={reload}
+            retryLabel="Reintentar"
+            onBack={handleBack}
+            backLabel="Volver"
+          />
+        </View>
+      </View>
+    );
+  }
+
+  return (
+    <View style={[styles.canvas, { backgroundColor: palette.background }]}>
+      <View
+        style={[
+          styles.header,
+          {
+            paddingTop: Math.max(insets.top, 16) + 8,
+            backgroundColor: palette.surface,
+            borderBottomColor: palette.border,
+          },
+        ]}
+      >
+        <TouchableOpacity
+          accessibilityRole="button"
+          accessibilityLabel="Volver a la pantalla anterior"
+          activeOpacity={0.7}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          onPress={handleBack}
+          style={styles.backButton}
+        >
+          <Text style={[styles.backGlyph, { color: palette.brand }]}>‹</Text>
+          <Text style={[styles.backText, { color: palette.brand }]}>
+            Volver
+          </Text>
+        </TouchableOpacity>
+
+        <View style={styles.kickerRow}>
+          <View
+            style={[styles.kickerBadge, { backgroundColor: palette.accent }]}
+          >
+            <Text style={[styles.kickerBadgeText, { color: palette.brand }]}>
+              CATÁLOGO PATRIMONIAL
+            </Text>
+          </View>
+          <Text style={[styles.seriesText, { color: palette.burgundy }]}>
+            SERIE AX
+          </Text>
+        </View>
+
+        <Text style={[styles.title, { color: palette.brand }]}>DESTINOS</Text>
+        <Text style={[styles.subtitle, { color: palette.textSecondary }]}>
+          {countLabel} · orden alfabético
+        </Text>
+      </View>
+      <TocapuStrip />
+      <FlatList
+        data={places}
+        keyExtractor={(item) => item.id}
+        renderItem={({ item }) => (
+          <PlaceTicketCard
+            place={item}
+            onPress={() => handleOpenPlace(item.id)}
+          />
+        )}
+        contentContainerStyle={[
+          styles.list,
+          {
+            paddingBottom: insets.bottom + 32,
+            justifyContent: places.length === 0 ? "center" : "flex-start",
+          },
+        ]}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={refresh}
+            tintColor={palette.primary}
+            colors={[palette.primary]}
+          />
+        }
+        ListEmptyComponent={
+          <PlaceEmptyState
+            title="No hay destinos disponibles"
+            description="El catálogo patrimonial no tiene registros activos por el momento. Vuelve más tarde o traza una ruta con el planificador de expediciones."
+            actionLabel="Volver"
+            onAction={handleBack}
+          />
+        }
+        ListFooterComponent={
+          places.length > 0 ? (
+            <View style={styles.stampWrapper}>
+              <AndeanTransitStamp
+                compact={true}
+                folio="SERIE AX · CATÁLOGO DE DESTINOS"
+                station="RED DE ESTACIONES CHASKI"
+                route="FICHAS PATRIMONIALES · LIMA"
+              />
+            </View>
+          ) : null
+        }
+      />
+    </View>
+  );
 }
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-    },
-    backButton: {
-        paddingHorizontal: 24,
-        paddingTop: 52,
-        paddingBottom: 4,
-        alignSelf: 'flex-start',
-    },
-    backText: {
-        fontSize: 15,
-        fontWeight: '600',
-    },
-    centered: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    title: {
-        textAlign: 'center',
-        paddingTop: 12,
-        paddingBottom: 16,
-    },
-    list: {
-        paddingHorizontal: 24,
-        gap: 12,
-        paddingBottom: 48,
-    },
-    card: {
-        padding: 16,
-        borderRadius: 12,
-        borderWidth: 1,
-        gap: 8,
-    },
-    placeName: {
-        fontWeight: '600',
-    },
-    address: {
-        marginBottom: 4,
-    },
-    chipsContainer: {
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-        gap: 6,
-    },
-    chip: {
-        paddingHorizontal: 10,
-        paddingVertical: 4,
-        borderRadius: 12,
-    },
-    chipText: {
-        fontSize: 12,
-    },
-    budgetRow: {
-        flexDirection: 'row',
-        gap: 16,
-        marginTop: 4,
-    },
-    empty: {
-        textAlign: 'center',
-        marginTop: 48,
-    },
-    errorText: {
-        color: '#e53935',
-    },
+  canvas: {
+    flex: 1,
+  },
+  stateWrapper: {
+    flex: 1,
+    paddingHorizontal: 20,
+    justifyContent: "center",
+  },
+  header: {
+    paddingBottom: 14,
+    paddingHorizontal: 20,
+    borderBottomWidth: 1,
+  },
+  backButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    alignSelf: "flex-start",
+    minHeight: 40,
+    gap: 4,
+  },
+  backGlyph: {
+    fontFamily: Fonts.serif,
+    fontSize: 24,
+    lineHeight: 26,
+    fontWeight: "700",
+  },
+  backText: {
+    fontFamily: Fonts.mono,
+    fontSize: 11,
+    fontWeight: "700",
+    letterSpacing: 1,
+  },
+  kickerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginTop: 6,
+    marginBottom: 4,
+  },
+  kickerBadge: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 3,
+  },
+  kickerBadgeText: {
+    fontFamily: Fonts.mono,
+    fontSize: 8.5,
+    fontWeight: "700",
+    letterSpacing: 0.8,
+  },
+  seriesText: {
+    fontFamily: Fonts.mono,
+    fontSize: 9,
+    fontWeight: "700",
+    letterSpacing: 1,
+  },
+  title: {
+    fontFamily: Fonts.serif,
+    fontSize: 24,
+    fontWeight: "700",
+    letterSpacing: 1,
+  },
+  subtitle: {
+    fontFamily: Fonts.mono,
+    fontSize: 11,
+    marginTop: 3,
+    letterSpacing: 0.4,
+  },
+  list: {
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    gap: 14,
+    flexGrow: 1,
+  },
+  stampWrapper: {
+    paddingTop: 20,
+    alignItems: "center",
+  },
 });

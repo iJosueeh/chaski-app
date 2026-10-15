@@ -1,13 +1,13 @@
 /**
- * Wizard — Paso 5 de 5: MOVILIDAD (stub funcional).
- * Último paso: al continuar, el wizard queda completo (request listo para
- * el motor de planes, que es la siguiente fase).
+ * Wizard — Paso 5 de 5: MOVILIDAD (Serie AX).
+ * Último paso: al continuar, navega a /plan/buscando para generar los planes.
  */
 import { useMemo } from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { router } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { useTheme } from '@/hooks/use-theme';
+import { Colors, Fonts } from '@/constants/theme';
 import { useWizard } from '@/features/wizard/context/wizard-context';
 import {
   StepIndicator,
@@ -16,15 +16,18 @@ import {
   WizardHeading,
   WizardTopBar,
 } from '@/features/wizard/components/wizard-ui';
+import { safeBackWizard, safeCancelWizard } from '@/features/wizard/utils/wizard-navigation';
+
+const palette = Colors.light;
 
 const OPCIONES = [
-  { id: 'caminando', label: 'Caminando', sub: 'Rutas cortas, a pie' },
-  { id: 'publico', label: 'Transporte público', sub: 'Metropolitano, buses' },
-  { id: 'aplicativo', label: 'Taxi / aplicativo', sub: 'Más rápido, más caro' },
+  { id: 'caminando', label: 'Caminando', sub: 'Rutas a pie, ritmo pausado' },
+  { id: 'publico', label: 'Transporte público', sub: 'Metropolitano y corredores' },
+  { id: 'aplicativo', label: 'Taxi / aplicativo', sub: 'Mayor alcance y rapidez' },
 ] as const;
 
 export default function WizardMovilidad() {
-  const theme = useTheme();
+  const insets = useSafeAreaInsets();
   const { request, setMovilidad } = useWizard();
   const sel = request.movilidad;
 
@@ -39,21 +42,24 @@ export default function WizardMovilidad() {
   }, [request.minutosTotales]);
 
   const seguir = () => {
-    // El wizard queda completo: el motor genera los 3 planes (Buscando → Resultados).
     router.push('/plan/buscando');
   };
 
   return (
-    <View style={[styles.canvas, { backgroundColor: theme.background }]}>
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        <WizardTopBar onBack={() => router.back()} onCancel={() => { router.dismissAll(); router.back(); }} />
-        <TocapuStrip />
+    <View style={[styles.canvas, { backgroundColor: palette.background }]}>
+      <WizardTopBar
+        onBack={() => safeBackWizard('/wizard/intereses')}
+        onCancel={safeCancelWizard}
+      />
+      <TocapuStrip />
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         <View style={styles.block}>
           <WizardHeading
             title="¿Cómo te mueves?"
-            subtitle="Elige tu movilidad preferida"
+            subtitle="Elige tu medio de desplazamiento preferido"
           />
         </View>
+
         <View style={styles.opsWrap}>
           {OPCIONES.map((op) => {
             const active = sel === op.id;
@@ -62,30 +68,35 @@ export default function WizardMovilidad() {
               <TouchableOpacity
                 key={op.id}
                 activeOpacity={0.85}
-                onPress={() => setMovilidad(op.id)}>
+                onPress={() => setMovilidad(op.id)}
+                accessibilityRole="button"
+                accessibilityLabel={`${op.label}, ${op.sub}${esRecomendado ? ', recomendado' : ''}`}
+              >
                 <View
                   style={[
                     styles.op,
                     {
-                      backgroundColor: theme.surface,
-                      borderColor: active ? theme.carmine : theme.brand,
-                      borderWidth: active ? 2 : 1.5,
+                      backgroundColor: palette.surface,
+                      borderColor: active ? palette.primary : palette.border,
+                      borderWidth: active ? 2 : 1,
                     },
-                  ]}>
+                  ]}
+                >
                   {esRecomendado ? (
-                    <View style={[styles.recomendadoBadge, { backgroundColor: theme.accent }]}>
-                      <Text style={[styles.recomendadoTexto, { color: theme.brand }]}>
+                    <View style={[styles.recomendadoBadge, { backgroundColor: palette.accent }]}>
+                      <Text style={[styles.recomendadoTexto, { color: palette.brand }]}>
                         RECOMENDADO
                       </Text>
                     </View>
                   ) : null}
-                  <Text style={[styles.opTitle, { color: theme.brand }]}>{op.label}</Text>
-                  <Text style={[styles.opSub, { color: theme.textSecondary }]}>{op.sub}</Text>
+                  <Text style={[styles.opTitle, { color: palette.brand }]}>{op.label}</Text>
+                  <Text style={[styles.opSub, { color: palette.textSecondary }]}>{op.sub}</Text>
                 </View>
               </TouchableOpacity>
             );
           })}
         </View>
+
         <View style={styles.btnWrap}>
           <WizardButton
             label="ENCONTRAR PLANES"
@@ -94,7 +105,16 @@ export default function WizardMovilidad() {
           />
         </View>
       </ScrollView>
-      <View style={[styles.footer, { backgroundColor: theme.background }]}>
+
+      <View
+        style={[
+          styles.footer,
+          {
+            backgroundColor: palette.background,
+            paddingBottom: Math.max(insets.bottom, 12) + 6,
+          },
+        ]}
+      >
         <StepIndicator step={5} />
       </View>
     </View>
@@ -104,33 +124,35 @@ export default function WizardMovilidad() {
 const styles = StyleSheet.create({
   canvas: { flex: 1 },
   scrollContent: { paddingBottom: 24 },
-  block: { paddingHorizontal: 20, paddingTop: 16 },
-  opsWrap: { paddingHorizontal: 20, gap: 12, marginTop: 20 },
+  block: { paddingHorizontal: 20, paddingTop: 14 },
+  opsWrap: { paddingHorizontal: 20, gap: 12, marginTop: 18 },
   op: {
     padding: 16,
-    borderRadius: 4,
+    borderRadius: 8,
   },
   recomendadoBadge: {
     alignSelf: 'flex-end',
     paddingHorizontal: 8,
     paddingVertical: 3,
-    borderRadius: 2,
+    borderRadius: 3,
     marginBottom: 6,
   },
   recomendadoTexto: {
-    fontFamily: 'IBMPlexMono_600SemiBold',
-    fontSize: 8,
+    fontFamily: Fonts.mono,
+    fontSize: 8.5,
+    fontWeight: '700',
     letterSpacing: 1,
   },
   opTitle: {
-    fontFamily: 'Cinzel_700Bold',
+    fontFamily: Fonts.serif,
     fontSize: 16,
+    fontWeight: '700',
   },
   opSub: {
-    fontFamily: 'IBMPlexMono_400Regular',
-    fontSize: 11,
-    marginTop: 4,
+    fontFamily: Fonts.sans,
+    fontSize: 12,
+    marginTop: 3,
   },
   btnWrap: { paddingHorizontal: 20, marginTop: 24 },
-  footer: { paddingHorizontal: 20, paddingTop: 10 },
+  footer: { paddingHorizontal: 20, paddingTop: 6 },
 });

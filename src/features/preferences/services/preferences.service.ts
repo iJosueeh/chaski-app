@@ -1,6 +1,8 @@
 import { supabase } from "@/lib/supabase";
 import {
     Category,
+    type SaveAtomicPreferencesRequest,
+    type SaveAtomicPreferencesResult,
     type SavePreferencesRequest,
     type UserPreferencesWithCategories,
 } from "../interfaces/preferences.interface";
@@ -77,46 +79,48 @@ export async function getUserPreferences(userId: string) {
     return { data: result, error: null };
 }
 
+export async function saveUserPreferencesAtomic({
+    categoryIds,
+    gastoMin = null,
+    gastoMax = null,
+    movilidadPreferida = null,
+    actualizarMovilidad = false,
+}: SaveAtomicPreferencesRequest) {
+    const { data, error } = await supabase.rpc("save_user_preferences_atomic", {
+        p_category_ids: categoryIds,
+        p_gasto_min: gastoMin,
+        p_gasto_max: gastoMax,
+        p_movilidad_preferida: movilidadPreferida,
+        p_actualizar_movilidad: actualizarMovilidad,
+    });
+
+    if (error) {
+        return {
+            data: null,
+            error,
+        };
+    }
+
+    return {
+        data: data as SaveAtomicPreferencesResult,
+        error: null,
+    };
+}
+
 export async function saveUserPreferences({
-    userId,
     movilidadPreferida,
     gastoMin,
     gastoMax,
     categoryIds,
 }: SavePreferencesRequest) {
-    const { error: preferencesError } = await supabase.from("preferencias_usuario").upsert({
-        usuario_id: userId,
-        movilidad_preferida: movilidadPreferida,
-        gasto_min: gastoMin,
-        gasto_max: gastoMax,
-        updated_at: new Date().toISOString(),
+    const { error } = await saveUserPreferencesAtomic({
+        categoryIds,
+        gastoMin,
+        gastoMax,
+        movilidadPreferida,
+        actualizarMovilidad: movilidadPreferida !== null && movilidadPreferida !== undefined,
     });
 
-    if (preferencesError) {
-        return { error: preferencesError };
-    }
-
-    const { error: deleteError } = await supabase
-        .from("preferencias_usuario_categorias")
-        .delete()
-        .eq("usuario_id", userId);
-
-    if (deleteError) {
-        return { error: deleteError };
-    }
-
-    if (categoryIds.length > 0) {
-        const rows = categoryIds.map(categoriaId => ({
-            usuario_id: userId,
-            categoria_id: categoriaId,
-        }));
-
-        const { error: insertError } = await supabase.from("preferencias_usuario_categorias").insert(rows);
-
-        if (insertError) {
-            return { error: insertError };
-        }
-    }
-
-    return { error: null };
+    return { error };
 }
+

@@ -29,6 +29,19 @@ export interface MarkerProps {
 
 export const Marker: React.FC<MarkerProps> = () => null;
 
+export interface UrlTileProps {
+  urlTemplate: string;
+  maximumZ?: number;
+  minimumZ?: number;
+  flipY?: boolean;
+  zIndex?: number;
+  [key: string]: any;
+}
+
+export const UrlTile: React.FC<UrlTileProps> = () => null;
+export const PROVIDER_GOOGLE = 'google';
+export const PROVIDER_DEFAULT = undefined;
+
 export interface MapViewRef {
   animateToRegion: (region: Region, duration?: number) => void;
 }

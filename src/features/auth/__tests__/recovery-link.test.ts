@@ -9,9 +9,9 @@ import {
   markPayloadInFlight,
   markPayloadSuccess,
   parseRecoveryUrl,
-  processRecoveryLink,
   resetPayloadRegistry,
 } from '../utils/recovery-link';
+import { processRecoveryLink } from '../services/recovery.service';
 import { supabase } from '@/lib/supabase';
 import {
   updatePassword,

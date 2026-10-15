@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -6,37 +6,26 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
-import * as Linking from 'expo-linking';
 import { router, useLocalSearchParams } from 'expo-router';
 
 import { Colors, Fonts } from '@/constants/theme';
+import { PasswordField } from '@/features/auth/components/password-field';
 import { useAuth } from '@/features/auth/context/auth-context';
+import { useRecoveryHandler } from '@/features/auth/hooks';
 import { signOut, updatePassword } from '@/features/auth/services/auth.service';
 import { validatePasswordChange } from '@/features/auth/utils/password-validation';
-import {
-  canProcessPayload,
-  getRecoveryFingerprint,
-  hasRecoveryPayload,
-  markPayloadFailed,
-  markPayloadInFlight,
-  markPayloadSuccess,
-  parseRecoveryUrl,
-  processRecoveryLink,
-  type ParsedRecoveryParams,
-} from '@/features/auth/utils/recovery-link';
 
-/**
- * Pantalla para procesar enlaces de recuperación y definir la nueva contraseña.
- * Solo permite establecer la nueva contraseña tras validar un enlace de recuperación legítimo.
- * No acepta sesiones normales existentes para acceder al formulario.
- */
 export function ResetPasswordScreen() {
-  const { isPasswordRecovery, setIsPasswordRecovery } = useAuth();
-  const incomingUrl = Linking.useURL();
+  const {
+    session,
+    isPasswordRecovery,
+    setIsPasswordRecovery,
+    isRecoveryVerified,
+    setIsRecoveryVerified,
+  } = useAuth();
   const searchParams = useLocalSearchParams<{
     code?: string;
     token_hash?: string;
@@ -45,111 +34,22 @@ export function ResetPasswordScreen() {
     error_description?: string;
   }>();
 
-  // Estados de flujo y verificación
-  const [processing, setProcessing] = useState(true);
-  const [isVerified, setIsVerified] = useState(false);
+  const { processing, isVerified, error: linkError } = useRecoveryHandler({
+    routeParams: searchParams,
+    session,
+    isPasswordRecovery,
+    isRecoveryVerified,
+    setIsPasswordRecovery,
+    setIsRecoveryVerified,
+  });
+
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    let isMounted = true;
-
-    async function handleIncomingRecovery() {
-      // 1. Si el contexto ya verificó el evento PASSWORD_RECOVERY
-      if (isPasswordRecovery && isVerified) {
-        if (isMounted) {
-          setProcessing(false);
-        }
-        return;
-      }
-
-      // 2. Extraer parámetros desde URL completa o searchParams de Expo Router
-      const urlParsed = parseRecoveryUrl(incomingUrl);
-
-      const paramsCombined: ParsedRecoveryParams = {
-        code: urlParsed.code || searchParams.code,
-        tokenHash: urlParsed.tokenHash || searchParams.token_hash,
-        type: urlParsed.type || searchParams.type,
-        accessToken: urlParsed.accessToken,
-        refreshToken: urlParsed.refreshToken,
-        error: urlParsed.error || searchParams.error,
-        errorDescription: urlParsed.errorDescription || searchParams.error_description,
-      };
-
-      if (!hasRecoveryPayload(paramsCombined)) {
-        // Enlace sin carga útil de recuperación y sin sesión de recuperación previa
-        if (isMounted) {
-          setIsVerified(false);
-          setProcessing(false);
-          setIsPasswordRecovery(false);
-          setError(
-            'No se detectó un enlace de recuperación válido. Para restablecer tu contraseña, solicita un nuevo enlace.',
-          );
-        }
-        return;
-      }
-
-      const fingerprint = getRecoveryFingerprint(paramsCombined);
-      if (fingerprint && !canProcessPayload(fingerprint)) {
-        // Bloqueo de concurrencia: ya en curso o exitoso
-        return;
-      }
-
-      if (fingerprint) {
-        markPayloadInFlight(fingerprint);
-      }
-
-      if (isMounted) {
-        setProcessing(true);
-        setError('');
-      }
-
-      // Prevenir desmontaje en _layout.tsx durante el canje PKCE
-      setIsPasswordRecovery(true);
-
-      try {
-        const result = await processRecoveryLink(paramsCombined);
-
-        if (!isMounted) return;
-
-        if (result.success) {
-          if (fingerprint) markPayloadSuccess(fingerprint);
-          setIsVerified(true);
-          setProcessing(false);
-        } else {
-          if (fingerprint) markPayloadFailed(fingerprint);
-          setIsVerified(false);
-          setIsPasswordRecovery(false);
-          await signOut();
-          setError(
-            result.error ||
-              'El enlace de recuperación es inválido, ha expirado o ya ha sido utilizado.',
-          );
-          setProcessing(false);
-        }
-      } catch (err: any) {
-        if (fingerprint) markPayloadFailed(fingerprint);
-        if (!isMounted) return;
-        setIsVerified(false);
-        setIsPasswordRecovery(false);
-        await signOut();
-        setError(
-          err?.message ||
-            'Error al procesar el enlace de recuperación. Comprueba tu conexión e intenta nuevamente.',
-        );
-        setProcessing(false);
-      }
-    }
-
-    handleIncomingRecovery();
-
-    return () => {
-      isMounted = false;
-    };
-  }, [incomingUrl, searchParams, isPasswordRecovery, isVerified, setIsPasswordRecovery]);
 
   const handleSubmit = async () => {
     if (loading || success || !isVerified) return;
@@ -169,11 +69,11 @@ export function ResetPasswordScreen() {
       setError(authError.message);
       setLoading(false);
     } else {
-      // Limpiar datos sensibles de la memoria
       setNewPassword('');
       setConfirmPassword('');
-      // Inmediatamente cerramos la sesión temporal de recuperación en Supabase
       await signOut();
+      setIsPasswordRecovery(false);
+      setIsRecoveryVerified(false);
       setLoading(false);
       setSuccess(true);
     }
@@ -181,18 +81,21 @@ export function ResetPasswordScreen() {
 
   const handleFinishAndLogin = async () => {
     setIsPasswordRecovery(false);
+    setIsRecoveryVerified(false);
     await signOut();
     router.replace('/login');
   };
 
   const handleExitToLogin = async () => {
     setIsPasswordRecovery(false);
+    setIsRecoveryVerified(false);
     await signOut();
     router.replace('/login');
   };
 
   const handleExitToForgotPassword = async () => {
     setIsPasswordRecovery(false);
+    setIsRecoveryVerified(false);
     await signOut();
     router.replace('/forgot-password');
   };
@@ -235,20 +138,25 @@ export function ResetPasswordScreen() {
                     Tu contraseña ha sido actualizada exitosamente. Ya puedes iniciar sesión con tus nuevas credenciales.
                   </Text>
                   <TouchableOpacity
-                    style={styles.primaryButton}
+                    style={styles.successButton}
                     onPress={handleFinishAndLogin}
+                    accessibilityRole="button"
+                    accessibilityLabel="Iniciar sesión"
+                    accessibilityHint="Vuelve a la pantalla de inicio de sesión"
+                    activeOpacity={0.85}
                   >
-                    <Text style={styles.primaryButtonText}>INICIAR SESIÓN</Text>
+                    <Text style={styles.successButtonText}>INICIAR SESIÓN</Text>
+                    <Text style={styles.successButtonArrow}>→</Text>
                   </TouchableOpacity>
                 </View>
               ) : !isVerified ? (
                 <View style={styles.errorBox}>
-                  <Text style={styles.errorText}>{error}</Text>
+                  <Text style={styles.errorText}>{linkError}</Text>
                   <TouchableOpacity
                     style={styles.primaryButton}
                     onPress={handleExitToForgotPassword}
                   >
-                    <Text style={styles.primaryButtonText}>SOLICITAR NUEVO ENLACE</Text>
+                    <Text style={styles.primaryButtonText}>SOLICITAR NUEVO CÓDIGO</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={styles.cancelButton}
@@ -259,35 +167,37 @@ export function ResetPasswordScreen() {
                 </View>
               ) : (
                 <View style={styles.form}>
-                  <Text style={styles.inputLabel}>NUEVA CONTRASEÑA</Text>
-                  <TextInput
-                    style={styles.input}
+                  <PasswordField
+                    label="NUEVA CONTRASEÑA"
                     placeholder="Mínimo 6 caracteres"
-                    placeholderTextColor={Colors.light.textSecondary}
                     value={newPassword}
                     onChangeText={(val) => {
                       setNewPassword(val);
                       if (error) setError('');
                     }}
-                    secureTextEntry
-                    autoCapitalize="none"
-                    autoCorrect={false}
+                    showPassword={showNewPassword}
+                    onToggleShowPassword={() => setShowNewPassword((prev) => !prev)}
+                    accessibilityLabel="Nueva contraseña"
+                    accessibilityHint="Ingresa tu nueva contraseña"
+                    toggleAccessibilityLabel={showNewPassword ? 'Ocultar nueva contraseña' : 'Mostrar nueva contraseña'}
+                    toggleAccessibilityHint="Alterna la visibilidad de los caracteres de la nueva contraseña"
                     editable={!loading}
                   />
 
-                  <Text style={styles.inputLabel}>CONFIRMAR NUEVA CONTRASEÑA</Text>
-                  <TextInput
-                    style={styles.input}
+                  <PasswordField
+                    label="CONFIRMAR NUEVA CONTRASEÑA"
                     placeholder="Repite la nueva contraseña"
-                    placeholderTextColor={Colors.light.textSecondary}
                     value={confirmPassword}
                     onChangeText={(val) => {
                       setConfirmPassword(val);
                       if (error) setError('');
                     }}
-                    secureTextEntry
-                    autoCapitalize="none"
-                    autoCorrect={false}
+                    showPassword={showConfirmPassword}
+                    onToggleShowPassword={() => setShowConfirmPassword((prev) => !prev)}
+                    accessibilityLabel="Confirmar nueva contraseña"
+                    accessibilityHint="Repite tu nueva contraseña"
+                    toggleAccessibilityLabel={showConfirmPassword ? 'Ocultar confirmación de contraseña' : 'Mostrar confirmación de contraseña'}
+                    toggleAccessibilityHint="Alterna la visibilidad de los caracteres de la confirmación de contraseña"
                     editable={!loading}
                   />
 
@@ -412,24 +322,6 @@ const styles = StyleSheet.create({
   form: {
     gap: 12,
   },
-  inputLabel: {
-    fontFamily: Fonts.mono,
-    fontSize: 10,
-    letterSpacing: 1.5,
-    color: Colors.light.brand,
-    marginTop: 4,
-  },
-  input: {
-    height: 48,
-    borderWidth: 1.5,
-    borderColor: Colors.light.border,
-    borderRadius: 8,
-    paddingHorizontal: 14,
-    fontSize: 15,
-    fontFamily: Fonts.sans,
-    color: Colors.light.text,
-    backgroundColor: Colors.light.background,
-  },
   errorBox: {
     paddingVertical: 12,
     gap: 12,
@@ -490,6 +382,37 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 20,
     marginBottom: 8,
+  },
+  successButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    alignSelf: 'stretch',
+    height: 54,
+    borderRadius: 10,
+    backgroundColor: Colors.light.primary,
+    borderWidth: 1,
+    borderColor: Colors.light.accent,
+    marginTop: 12,
+    shadowColor: Colors.light.shadowStrong,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.35,
+    shadowRadius: 10,
+    elevation: 4,
+  },
+  successButtonText: {
+    fontFamily: Fonts.mono,
+    fontSize: 13,
+    fontWeight: '700',
+    letterSpacing: 2,
+    color: Colors.light.surface,
+  },
+  successButtonArrow: {
+    fontFamily: Fonts.sans,
+    fontSize: 16,
+    fontWeight: '700',
+    color: Colors.light.surface,
   },
   ticketFooter: {
     paddingHorizontal: 16,

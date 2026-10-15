@@ -16,21 +16,23 @@ import { Colors, Fonts } from '@/constants/theme';
 import { requestPasswordReset } from '@/features/auth/services/auth.service';
 import { validateEmail } from '@/features/auth/utils/password-validation';
 
+import { normalizeEmail } from '@/features/auth/utils/otp-validation';
+
 /**
  * Pantalla pública para solicitar recuperación de contraseña por correo.
  * Sigue la identidad visual de boleto Serie AX.
- * Utiliza una confirmación neutral para evitar la enumeración de correos.
+ * Solicita el código OTP de 6 dígitos y redirige a la pantalla de verificación.
  */
 export function ForgotPasswordScreen() {
   const [email, setEmail] = useState('');
   const [error, setError] = useState('');
-  const [success, setSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async () => {
-    if (loading || success) return;
+    if (loading) return;
 
-    const validation = validateEmail(email);
+    const normalized = normalizeEmail(email);
+    const validation = validateEmail(normalized);
     if (!validation.isValid) {
       setError(validation.error ?? 'Correo inválido');
       return;
@@ -39,7 +41,7 @@ export function ForgotPasswordScreen() {
     setLoading(true);
     setError('');
 
-    const { error: resetError } = await requestPasswordReset(email.trim());
+    const { error: resetError } = await requestPasswordReset(normalized, { redirectTo: null });
 
     if (resetError) {
       if (
@@ -54,9 +56,12 @@ export function ForgotPasswordScreen() {
       }
       setLoading(false);
     } else {
-      // Confirmación neutral: no revela si el correo existe o no en la base de datos
       setLoading(false);
-      setSuccess(true);
+      // Navegación inmediata a verify-otp pasando el correo normalizado sin secretos
+      router.push({
+        pathname: '/verify-otp',
+        params: { email: normalized },
+      });
     }
   };
 
@@ -82,27 +87,11 @@ export function ForgotPasswordScreen() {
             <View style={styles.ticketBody}>
               <Text style={styles.title}>Recuperar Contraseña</Text>
               <Text style={styles.subtitle}>
-                Ingresa tu correo electrónico para enviarte las instrucciones de restablecimiento.
+                Ingresa tu correo electrónico para enviarte un código de recuperación de 6 dígitos.
               </Text>
 
-              {success ? (
-                <View style={styles.successBox}>
-                  <Text style={styles.successIcon}>✉</Text>
-                  <Text style={styles.successTitle}>Solicitud Enviada</Text>
-                  <Text style={styles.successText}>
-                    Si el correo ingresado se encuentra registrado en Chaski, recibirás un mensaje
-                    con el enlace de restablecimiento. Por favor, revisa también tu carpeta de correo no deseado.
-                  </Text>
-                  <TouchableOpacity
-                    style={styles.primaryButton}
-                    onPress={() => router.replace('/login')}
-                  >
-                    <Text style={styles.primaryButtonText}>VOLVER AL INICIO DE SESIÓN</Text>
-                  </TouchableOpacity>
-                </View>
-              ) : (
-                <View style={styles.form}>
-                  <Text style={styles.inputLabel}>CORREO ELECTRÓNICO</Text>
+              <View style={styles.form}>
+                <Text style={styles.inputLabel}>CORREO ELECTRÓNICO</Text>
                   <TextInput
                     style={styles.input}
                     placeholder="ejemplo@correo.com"
@@ -140,7 +129,6 @@ export function ForgotPasswordScreen() {
                     <Text style={styles.cancelButtonText}>VOLVER AL INICIO DE SESIÓN</Text>
                   </TouchableOpacity>
                 </View>
-              )}
             </View>
 
             <View style={styles.goldRule} />

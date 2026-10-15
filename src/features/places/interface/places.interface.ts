@@ -19,23 +19,30 @@ export interface Place {
     id: string;
     nombre: string;
     descripcion: string | null;
-
     latitud: number;
     longitud: number;
     direccion: string | null;
-
     gasto_min: number | null;
     gasto_max: number | null;
-
     duracion_sugerida_min: number | null;
-
     estado: boolean;
     fuente: string;
     external_id: string | null;
     tipo_disponibilidad?: string | null;
     fecha_actualizacion: string;
-
     categorias: PlaceCategory[];
     etiquetas: PlaceTag[];
     horarios: PlaceSchedule[];
+    imagen_portada?: string | null;
+    imagenes?: PlaceImage[];
+}
+
+export interface PlaceImage {
+    id: string;
+    lugar_id: string;
+    storage_path: string;
+    url: string;
+    es_portada: boolean;
+    orden: number;
+    created_at?: string;
 }

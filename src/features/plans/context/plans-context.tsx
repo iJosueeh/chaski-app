@@ -1,33 +1,30 @@
-/**
- * PlansContext — el ciclo de vida del plan del usuario.
- *
- * Estados (máquina según docs de Josué):
- *   ACTIVO (en curso)  -> COMPLETADO -> archivado en historial
- *
- * Persistencia: AsyncStorage (sobrevive a cierres de la app).
- * Un solo plan activo a la vez; al completar se archiva con fecha.
- * `visitadas` = órdenes de parada ya marcadas como completadas.
- */
 import {
   createContext,
   useCallback,
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 
+import { useAuth } from '@/features/auth/context/auth-context';
 import type { GeneratedPlan } from '@/features/plan-engine/plan-engine';
 
-export type PlanHistorialEntry = GeneratedPlan & {
-  completado_en: string; // ISO date
-};
+import type { EstadoExpedicion, PlanHistorialEntry } from '../interfaces/plans.interface';
+import { guardarExpedicion } from '../services/expediciones-plan.service';
+import {
+  clearActivePlan,
+  loadPlansStorage,
+  saveActivePlan,
+  saveVisitedStops,
+} from '../services/plans-storage.service';
+
+export type { EstadoExpedicion, PlanHistorialEntry };
 
 interface PlansContextValue {
   planActivo: GeneratedPlan | null;
-  /** Órdenes de parada ya visitadas (progreso real del recorrido). */
   visitadas: number[];
   historial: PlanHistorialEntry[];
   loading: boolean;
@@ -35,58 +32,72 @@ interface PlansContextValue {
   marcarParada: (orden: number) => void;
   paradaVisitada: (orden: number) => boolean;
   completarPlan: () => Promise<void>;
+  abandonarPlan: () => Promise<void>;
   cancelarPlan: () => Promise<void>;
   limpiarHistorial: () => Promise<void>;
 }
 
-const KEY_ACTIVO = '@chaski/plan_activo_v1';
-const KEY_VISITADAS = '@chaski/plan_visitadas_v1';
-const KEY_HISTORIAL = '@chaski/plan_historial_v1';
-
 const PlansContext = createContext<PlansContextValue | null>(null);
 
 export function PlansProvider({ children }: { children: ReactNode }) {
+  const { user } = useAuth();
+  const userId = user?.id ?? null;
   const [planActivo, setPlanActivo] = useState<GeneratedPlan | null>(null);
   const [visitadas, setVisitadas] = useState<number[]>([]);
   const [historial, setHistorial] = useState<PlanHistorialEntry[]>([]);
   const [loading, setLoading] = useState(true);
+  const activeUserIdRef = useRef<string | null>(userId);
 
-  // Cargar al iniciar
   useEffect(() => {
-    (async () => {
-      try {
-        const [a, v, h] = await Promise.all([
-          AsyncStorage.getItem(KEY_ACTIVO),
-          AsyncStorage.getItem(KEY_VISITADAS),
-          AsyncStorage.getItem(KEY_HISTORIAL),
-        ]);
-        if (a) setPlanActivo(JSON.parse(a));
-        if (v) setVisitadas(JSON.parse(v));
-        if (h) setHistorial(JSON.parse(h));
-      } catch {
-        // almacenamiento corrupto: empezar limpio (no bloquear la app)
-      } finally {
+    activeUserIdRef.current = userId;
+    let cancelled = false;
+
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setPlanActivo(null);
+    setVisitadas([]);
+    setHistorial([]);
+
+    if (!userId) {
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
+    loadPlansStorage(userId)
+      .then((snapshot) => {
+        if (cancelled || activeUserIdRef.current !== userId) return;
+        setPlanActivo(snapshot.planActivo);
+        setVisitadas(snapshot.visitadas);
+      })
+      .catch(() => {
+      })
+      .finally(() => {
+        if (cancelled || activeUserIdRef.current !== userId) return;
         setLoading(false);
-      }
-    })();
-  }, []);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [userId]);
 
   const activarPlan = useCallback(async (plan: GeneratedPlan) => {
     setPlanActivo(plan);
     setVisitadas([]);
-    await AsyncStorage.setItem(KEY_ACTIVO, JSON.stringify(plan));
-    await AsyncStorage.setItem(KEY_VISITADAS, JSON.stringify([]));
-  }, []);
+    if (userId) {
+      await saveActivePlan(userId, plan);
+    }
+  }, [userId]);
 
   const marcarParada = useCallback((orden: number) => {
     setVisitadas((prev) => {
       const n = prev.includes(orden)
         ? prev.filter((o) => o !== orden)
         : [...prev, orden];
-      AsyncStorage.setItem(KEY_VISITADAS, JSON.stringify(n));
+      if (userId) saveVisitedStops(userId, n);
       return n;
     });
-  }, []);
+  }, [userId]);
 
   const paradaVisitada = useCallback(
     (orden: number) => visitadas.includes(orden),
@@ -95,29 +106,83 @@ export function PlansProvider({ children }: { children: ReactNode }) {
 
   const completarPlan = useCallback(async () => {
     if (!planActivo) return;
+    const totalParadas = planActivo.paradas?.length ?? 0;
+    const visitadasCount = visitadas.length;
+    const estado_expedicion: EstadoExpedicion =
+      totalParadas > 0 && visitadasCount >= totalParadas ? 'COMPLETADA' : 'PARCIAL';
+
+    const paradas_visitadas_ids = (planActivo.paradas ?? [])
+      .filter((s) => visitadas.includes(s.orden))
+      .map((s) => s.place?.id)
+      .filter((id): id is string => Boolean(id));
+
     const entry: PlanHistorialEntry = {
       ...planActivo,
       completado_en: new Date().toISOString(),
+      paradas_visitadas: [...visitadas],
+      paradas_visitadas_ids,
+      estado_expedicion,
     };
     const nuevo = [entry, ...historial];
     setHistorial(nuevo);
     setPlanActivo(null);
     setVisitadas([]);
-    await AsyncStorage.setItem(KEY_HISTORIAL, JSON.stringify(nuevo));
-    await AsyncStorage.removeItem(KEY_ACTIVO);
-    await AsyncStorage.setItem(KEY_VISITADAS, JSON.stringify([]));
-  }, [planActivo, historial]);
+    if (userId) {
+      await clearActivePlan(userId);
+    }
+    if (userId && planActivo.solicitud_id) {
+      guardarExpedicion({
+        solicitudId: planActivo.solicitud_id,
+        usuarioId: userId,
+        estadoExpedicion: estado_expedicion,
+        completadoEn: entry.completado_en,
+        planSnapshot: planActivo,
+        paradasVisitadas: [...visitadas],
+        paradasVisitadasIds: paradas_visitadas_ids,
+      });
+    }
+  }, [planActivo, visitadas, historial, userId]);
 
-  const cancelarPlan = useCallback(async () => {
+  const abandonarPlan = useCallback(async () => {
+    if (!planActivo) return;
+    const paradas_visitadas_ids = (planActivo.paradas ?? [])
+      .filter((s) => visitadas.includes(s.orden))
+      .map((s) => s.place?.id)
+      .filter((id): id is string => Boolean(id));
+
+    const entry: PlanHistorialEntry = {
+      ...planActivo,
+      completado_en: new Date().toISOString(),
+      paradas_visitadas: [...visitadas],
+      paradas_visitadas_ids,
+      estado_expedicion: 'ABANDONADA',
+    };
+    const nuevo = [entry, ...historial];
+    setHistorial(nuevo);
     setPlanActivo(null);
     setVisitadas([]);
-    await AsyncStorage.removeItem(KEY_ACTIVO);
-    await AsyncStorage.setItem(KEY_VISITADAS, JSON.stringify([]));
-  }, []);
+    if (userId) {
+      await clearActivePlan(userId);
+    }
+    if (userId && planActivo.solicitud_id) {
+      guardarExpedicion({
+        solicitudId: planActivo.solicitud_id,
+        usuarioId: userId,
+        estadoExpedicion: 'ABANDONADA',
+        completadoEn: entry.completado_en,
+        planSnapshot: planActivo,
+        paradasVisitadas: [...visitadas],
+        paradasVisitadasIds: paradas_visitadas_ids,
+      });
+    }
+  }, [planActivo, visitadas, historial, userId]);
+
+  const cancelarPlan = useCallback(async () => {
+    await abandonarPlan();
+  }, [abandonarPlan]);
 
   const limpiarHistorial = useCallback(async () => {
     setHistorial([]);
-    await AsyncStorage.removeItem(KEY_HISTORIAL);
   }, []);
 
   const value = useMemo<PlansContextValue>(
@@ -130,6 +195,7 @@ export function PlansProvider({ children }: { children: ReactNode }) {
       marcarParada,
       paradaVisitada,
       completarPlan,
+      abandonarPlan,
       cancelarPlan,
       limpiarHistorial,
     }),
@@ -142,6 +208,7 @@ export function PlansProvider({ children }: { children: ReactNode }) {
       marcarParada,
       paradaVisitada,
       completarPlan,
+      abandonarPlan,
       cancelarPlan,
       limpiarHistorial,
     ],

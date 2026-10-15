@@ -1,267 +1,342 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
-    ActivityIndicator,
-    KeyboardAvoidingView,
-    Platform,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Keyboard,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+  useWindowDimensions,
+  type LayoutChangeEvent,
 } from 'react-native';
 import { router } from 'expo-router';
 
 import { Colors, Fonts } from '@/constants/theme';
+import { AndeanTransitStamp } from '@/features/auth/components/andean-transit-stamp';
+import { AuthTicketLayout } from '@/features/auth/components/auth-ticket-layout';
+import { PasswordField } from '@/features/auth/components/password-field';
 import { useAuth } from '@/features/auth/context/auth-context';
-import { signIn } from '@/features/auth/services/auth.service';
+import { useLogin } from '@/features/auth/hooks';
 
-/**
- * Pantalla de Login — "Boleto de Experiencias" (Serie AX).
- * Identidad: boleto vintage de transporte con marca CHASKI en Cinzel,
- * folio de serie, pergamino crema y acentos dorados.
- */
 export function LoginScreen() {
-    const { setIsPasswordRecovery } = useAuth();
-    const [email, setEmail] = useState('');
-    const [password, setPassword] = useState('');
-    const [error, setError] = useState('');
-    const [loading, setLoading] = useState(false);
+  const { setIsPasswordRecovery, setIsRecoveryVerified } = useAuth();
+  const {
+    email,
+    password,
+    showPassword,
+    loading,
+    error,
+    emailError,
+    passwordError,
+    changeEmail,
+    changePassword,
+    toggleShowPassword,
+    submit,
+  } = useLogin({ setIsPasswordRecovery, setIsRecoveryVerified });
+  const [keyboardVisible, setKeyboardVisible] = useState(false);
 
-    useEffect(() => {
-        setIsPasswordRecovery(false);
-    }, [setIsPasswordRecovery]);
+  const scrollViewRef = useRef<ScrollView>(null);
+  const emailInputRef = useRef<TextInput>(null);
+  const passwordInputRef = useRef<TextInput>(null);
 
-    const handleLogin = async () => {
-        if (!email || !password) {
-            setError('Completa todos los campos');
-            return;
+  const { width, height } = useWindowDimensions();
+  const isLandscape = width > height;
+  const isCompactHeight = height < 720;
+
+  const currentFocusedFieldRef = useRef<string | null>(null);
+  const fieldYOffsets = useRef<Record<string, number>>({});
+
+  const showDecoration = !keyboardVisible && !isCompactHeight && !isLandscape;
+
+  const getTargetScrollOffset = useCallback(
+    (fieldKey: string): number => {
+      if (typeof fieldYOffsets.current[fieldKey] === 'number') {
+        return fieldYOffsets.current[fieldKey];
+      }
+      const defaults = isCompactHeight
+        ? { email: 0, password: 80 }
+        : { email: 0, password: 100 };
+      return defaults[fieldKey as keyof typeof defaults] ?? 0;
+    },
+    [isCompactHeight],
+  );
+
+  const scrollToActiveField = useCallback(
+    (fieldKey: string, animated = true) => {
+      const targetY = getTargetScrollOffset(fieldKey);
+      scrollViewRef.current?.scrollTo({ y: targetY, animated });
+    },
+    [getTargetScrollOffset],
+  );
+
+  const handleFocusField = useCallback(
+    (fieldKey: string) => {
+      currentFocusedFieldRef.current = fieldKey;
+      scrollToActiveField(fieldKey, true);
+      setTimeout(() => {
+        if (currentFocusedFieldRef.current === fieldKey) {
+          scrollToActiveField(fieldKey, true);
         }
-        setLoading(true);
-        setError('');
-        setIsPasswordRecovery(false);
-        const { error: authError } = await signIn({ email, password });
-        if (authError) setError(authError.message);
-        setLoading(false);
+      }, 160);
+    },
+    [scrollToActiveField],
+  );
+
+  const handleFieldLayout = useCallback(
+    (fieldKey: string) => (event: LayoutChangeEvent) => {
+      fieldYOffsets.current[fieldKey] = event.nativeEvent.layout.y;
+    },
+    [],
+  );
+
+  useEffect(() => {
+    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+
+    const showSub = Keyboard.addListener?.(showEvent, () => {
+      setKeyboardVisible(true);
+      if (currentFocusedFieldRef.current) {
+        scrollToActiveField(currentFocusedFieldRef.current, true);
+      }
+    });
+
+    const hideSub = Keyboard.addListener?.(hideEvent, () => {
+      setKeyboardVisible(false);
+    });
+
+    return () => {
+      showSub?.remove?.();
+      hideSub?.remove?.();
     };
+  }, [scrollToActiveField]);
 
-    return (
-        <View style={styles.canvas}>
-            <KeyboardAvoidingView
-                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-                style={styles.keyboard}
+  const handleLogin = async () => {
+    const targetField = await submit();
+    if (targetField) {
+      scrollToActiveField(targetField);
+    }
+  };
+
+  return (
+    <AuthTicketLayout
+      serie="SERIE AX · NRO 00001"
+      title="Bienvenido"
+      subtitle="Inicia sesión para planificar tu salida."
+      footerFolio="EMPRESA DE TRANSPORTES CHASKI · LÍNEA CULTURAL"
+      scrollViewRef={scrollViewRef}
+      bottomDecorativeContent={showDecoration ? <AndeanTransitStamp /> : null}
+    >
+      <View style={styles.form}>
+        {/* 1. Campo: Correo Electrónico */}
+        <View style={styles.inputGroup} onLayout={handleFieldLayout('email')}>
+          <Text style={styles.inputLabel}>CORREO ELECTRÓNICO</Text>
+          <TextInput
+            ref={emailInputRef}
+            style={styles.input}
+            placeholder="ejemplo@correo.com"
+            placeholderTextColor={Colors.light.textSecondary}
+            value={email}
+            onChangeText={changeEmail}
+            onFocus={() => handleFocusField('email')}
+            keyboardType="email-address"
+            autoCapitalize="none"
+            autoCorrect={false}
+            returnKeyType="next"
+            onSubmitEditing={() => passwordInputRef.current?.focus()}
+            blurOnSubmit={false}
+            editable={!loading}
+            accessible={true}
+            accessibilityLabel="Correo electrónico"
+            accessibilityHint="Ingresa tu correo registrado"
+          />
+          {emailError ? (
+            <Text
+              style={styles.fieldErrorText}
+              accessible={true}
+              accessibilityLiveRegion="polite"
             >
-                {/* Ticket / boleto */}
-                <View style={styles.ticket}>
-                    {/* Franja superior (marca + folio) */}
-                    <View style={styles.ticketHeader}>
-                        <Text style={styles.brand}>CHASKI</Text>
-                        <Text style={styles.serie}>SERIE AX · NRO 00001</Text>
-                    </View>
-
-                    {/* Separador dorado con muescas */}
-                    <View style={styles.goldRule} />
-
-                    {/* Cuerpo del boleto */}
-                    <View style={styles.ticketBody}>
-                        <Text style={styles.title}>Bienvenido</Text>
-                        <Text style={styles.subtitle}>
-                            Inicia sesión para planificar tu salida.
-                        </Text>
-
-                        <View style={styles.form}>
-                            <TextInput
-                                style={styles.input}
-                                placeholder="Correo electrónico"
-                                placeholderTextColor={Colors.light.textSecondary}
-                                value={email}
-                                onChangeText={setEmail}
-                                keyboardType="email-address"
-                                autoCapitalize="none"
-                                autoCorrect={false}
-                            />
-
-                            <TextInput
-                                style={styles.input}
-                                placeholder="Contraseña"
-                                placeholderTextColor={Colors.light.textSecondary}
-                                value={password}
-                                onChangeText={setPassword}
-                                secureTextEntry
-                            />
-
-                            <TouchableOpacity
-                                onPress={() => router.push('/forgot-password')}
-                                style={styles.forgotLink}
-                            >
-                                <Text style={styles.forgotText}>¿Olvidaste tu contraseña?</Text>
-                            </TouchableOpacity>
-
-                            {error ? <Text style={styles.error}>{error}</Text> : null}
-
-                            <TouchableOpacity
-                                style={[styles.button, { opacity: loading ? 0.6 : 1 }]}
-                                onPress={handleLogin}
-                                disabled={loading}
-                            >
-                                {loading ? (
-                                    <ActivityIndicator color={Colors.light.surface} />
-                                ) : (
-                                    <Text style={styles.buttonText}>INICIAR SESIÓN</Text>
-                                )}
-                            </TouchableOpacity>
-                        </View>
-
-                        <TouchableOpacity onPress={() => router.push('/register')} style={styles.link}>
-                            <Text style={styles.linkText}>
-                                ¿No tienes boleto? <Text style={styles.linkStrong}>Regístrate</Text>
-                            </Text>
-                        </TouchableOpacity>
-                    </View>
-
-                    {/* Franja inferior (folio) */}
-                    <View style={styles.goldRule} />
-                    <View style={styles.ticketFooter}>
-                        <Text style={styles.folio}>EMPRESA DE TRANSPORTES CHASKI · LÍNEA CULTURAL</Text>
-                    </View>
-                </View>
-            </KeyboardAvoidingView>
+              {emailError}
+            </Text>
+          ) : null}
         </View>
-    );
+
+        {/* 2. Campo: Contraseña (con visibilidad accesible) */}
+        <View onLayout={handleFieldLayout('password')}>
+          <PasswordField
+            ref={passwordInputRef}
+            label="CONTRASEÑA"
+            placeholder="Tu contraseña"
+            value={password}
+            onChangeText={changePassword}
+            onFocus={() => handleFocusField('password')}
+            showPassword={showPassword}
+            onToggleShowPassword={toggleShowPassword}
+            accessibilityLabel="Contraseña"
+            accessibilityHint="Ingresa tu contraseña"
+            toggleAccessibilityLabel={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+            toggleAccessibilityHint="Alterna la visibilidad de los caracteres de la contraseña"
+            returnKeyType="done"
+            blurOnSubmit={true}
+            onSubmitEditing={handleLogin}
+            editable={!loading}
+          />
+          {passwordError ? (
+            <Text
+              style={styles.fieldErrorText}
+              accessible={true}
+              accessibilityLiveRegion="polite"
+            >
+              {passwordError}
+            </Text>
+          ) : null}
+        </View>
+
+        {/* Enlace de recuperación de contraseña */}
+        <TouchableOpacity
+          onPress={() => router.push('/forgot-password')}
+          style={styles.forgotLink}
+          accessibilityRole="link"
+          accessibilityLabel="¿Olvidaste tu contraseña?"
+          accessibilityHint="Navega a la pantalla para restablecer tu contraseña"
+          disabled={loading}
+        >
+          <Text style={styles.forgotText}>¿Olvidaste tu contraseña?</Text>
+        </TouchableOpacity>
+
+        {/* Mensaje de error accesible */}
+        {error ? (
+          <View
+            style={styles.errorBox}
+            accessible={true}
+            accessibilityRole="alert"
+            accessibilityLiveRegion="assertive"
+          >
+            <Text style={styles.errorText}>{error}</Text>
+          </View>
+        ) : null}
+
+        {/* Botón Principal */}
+        <TouchableOpacity
+          style={[styles.primaryButton, { opacity: loading ? 0.6 : 1 }]}
+          onPress={handleLogin}
+          disabled={loading}
+          accessibilityRole="button"
+          accessibilityLabel="Iniciar sesión"
+          accessibilityState={{ disabled: loading, busy: loading }}
+          activeOpacity={0.85}
+        >
+          {loading ? (
+            <ActivityIndicator color={Colors.light.surface} />
+          ) : (
+            <Text style={styles.primaryButtonText}>INICIAR SESIÓN</Text>
+          )}
+        </TouchableOpacity>
+
+        {/* Enlace hacia Registro */}
+        <TouchableOpacity
+          onPress={() => router.push('/register')}
+          style={styles.link}
+          accessibilityRole="link"
+          accessibilityLabel="¿No tienes boleto? Regístrate"
+          accessibilityHint="Navega al formulario para emitir un nuevo boleto de pasajero"
+          disabled={loading}
+        >
+          <Text style={styles.linkText}>
+            ¿No tienes boleto? <Text style={styles.linkStrong}>Regístrate</Text>
+          </Text>
+        </TouchableOpacity>
+      </View>
+    </AuthTicketLayout>
+  );
 }
 
 const styles = StyleSheet.create({
-    canvas: {
-        flex: 1,
-        backgroundColor: Colors.light.background,
-        paddingHorizontal: 20,
-        justifyContent: 'center',
-    },
-    keyboard: {
-        flex: 1,
-        justifyContent: 'center',
-    },
-    ticket: {
-        backgroundColor: Colors.light.surface,
-        borderRadius: 16,
-        borderWidth: 1,
-        borderColor: Colors.light.border,
-        shadowColor: Colors.light.shadowStrong,
-        shadowOffset: { width: 0, height: 8 },
-        shadowOpacity: 1,
-        shadowRadius: 20,
-        elevation: 5,
-        overflow: 'hidden',
-    },
-    ticketHeader: {
-        paddingHorizontal: 20,
-        paddingTop: 24,
-        paddingBottom: 16,
-        alignItems: 'center',
-    },
-    brand: {
-        fontFamily: Fonts.serif,
-        fontSize: 34,
-        fontWeight: '700',
-        letterSpacing: 6,
-        color: Colors.light.brand,
-    },
-    serie: {
-        fontFamily: Fonts.mono,
-        fontSize: 10,
-        letterSpacing: 2,
-        color: Colors.light.textSecondary,
-        marginTop: 4,
-    },
-    goldRule: {
-        height: 2,
-        backgroundColor: Colors.light.accent,
-        opacity: 0.7,
-    },
-    ticketBody: {
-        paddingHorizontal: 24,
-        paddingVertical: 28,
-    },
-    title: {
-        fontFamily: Fonts.serif,
-        fontSize: 24,
-        fontWeight: '700',
-        color: Colors.light.text,
-        marginBottom: 6,
-    },
-    subtitle: {
-        fontFamily: Fonts.sans,
-        fontSize: 14,
-        color: Colors.light.textSecondary,
-        marginBottom: 28,
-    },
-    form: {
-        gap: 12,
-    },
-    input: {
-        height: 50,
-        borderWidth: 1,
-        borderColor: Colors.light.border,
-        borderRadius: 10,
-        paddingHorizontal: 16,
-        fontSize: 15,
-        fontFamily: Fonts.sans,
-        color: Colors.light.text,
-        backgroundColor: Colors.light.backgroundElement,
-    },
-    forgotLink: {
-        alignSelf: 'flex-end',
-        marginTop: 2,
-        marginBottom: 6,
-    },
-    forgotText: {
-        fontFamily: Fonts.sans,
-        fontSize: 12,
-        color: Colors.light.primary,
-        fontWeight: '600',
-    },
-    button: {
-        height: 50,
-        backgroundColor: Colors.light.primary,
-        borderRadius: 10,
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginTop: 8,
-    },
-    buttonText: {
-        fontFamily: Fonts.mono,
-        fontSize: 13,
-        letterSpacing: 2,
-        fontWeight: '700',
-        color: Colors.light.surface,
-    },
-    error: {
-        color: Colors.light.error,
-        textAlign: 'center',
-        fontFamily: Fonts.sans,
-        fontSize: 13,
-    },
-    link: {
-        marginTop: 24,
-        alignItems: 'center',
-    },
-    linkText: {
-        fontFamily: Fonts.sans,
-        fontSize: 14,
-        color: Colors.light.textSecondary,
-    },
-    linkStrong: {
-        color: Colors.light.primary,
-        fontWeight: '700',
-    },
-    ticketFooter: {
-        paddingHorizontal: 20,
-        paddingVertical: 14,
-        alignItems: 'center',
-    },
-    folio: {
-        fontFamily: Fonts.mono,
-        fontSize: 9,
-        letterSpacing: 1,
-        color: Colors.light.textSecondary,
-    },
+  form: {
+    gap: 14,
+  },
+  inputGroup: {
+    gap: 4,
+  },
+  inputLabel: {
+    fontFamily: Fonts.mono,
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 1,
+    color: Colors.light.textSecondary,
+  },
+  input: {
+    height: 50,
+    borderWidth: 1,
+    borderColor: Colors.light.border,
+    borderRadius: 10,
+    paddingHorizontal: 16,
+    fontSize: 15,
+    fontFamily: Fonts.sans,
+    color: Colors.light.text,
+    backgroundColor: Colors.light.backgroundElement,
+  },
+  fieldErrorText: {
+    fontFamily: Fonts.sans,
+    fontSize: 12,
+    lineHeight: 16,
+    color: Colors.light.error,
+    marginTop: 2,
+  },
+  forgotLink: {
+    alignSelf: 'flex-end',
+    marginTop: 2,
+    marginBottom: 4,
+  },
+  forgotText: {
+    fontFamily: Fonts.sans,
+    fontSize: 13,
+    color: Colors.light.primary,
+    fontWeight: '600',
+  },
+  errorBox: {
+    backgroundColor: '#FDF2F2',
+    borderWidth: 1,
+    borderColor: Colors.light.error,
+    borderRadius: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+  },
+  errorText: {
+    color: Colors.light.error,
+    fontFamily: Fonts.sans,
+    fontSize: 13,
+    lineHeight: 18,
+    textAlign: 'center',
+  },
+  primaryButton: {
+    height: 50,
+    backgroundColor: Colors.light.primary,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 6,
+  },
+  primaryButtonText: {
+    fontFamily: Fonts.mono,
+    fontSize: 13,
+    letterSpacing: 2,
+    fontWeight: '700',
+    color: Colors.light.surface,
+  },
+  link: {
+    marginTop: 18,
+    alignItems: 'center',
+  },
+  linkText: {
+    fontFamily: Fonts.sans,
+    fontSize: 14,
+    color: Colors.light.textSecondary,
+  },
+  linkStrong: {
+    color: Colors.light.primary,
+    fontWeight: '700',
+  },
 });

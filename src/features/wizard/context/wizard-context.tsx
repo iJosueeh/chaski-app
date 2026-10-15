@@ -34,6 +34,7 @@ export type WizardPlanRequest = {
   diaSemana?: number; // 1 = Lunes ... 7 = Domingo
   fecha?: string; // "YYYY-MM-DD" o formato ISO
   estrategia?: PlanStrategy;
+  solicitudId?: string | null;
 };
 
 const EMPTY_REQUEST: WizardPlanRequest = {
@@ -44,6 +45,7 @@ const EMPTY_REQUEST: WizardPlanRequest = {
   presupuesto: null,
   intereses: [],
   movilidad: null,
+  solicitudId: null,
 };
 
 interface WizardContextValue {
@@ -54,6 +56,7 @@ interface WizardContextValue {
   setPresupuesto: (v: number) => void;
   setIntereses: (v: string[]) => void;
   setMovilidad: (v: WizardPlanRequest['movilidad'] | undefined) => void;
+  setSolicitudId: (id: string | null) => void;
   reset: () => void;
 }
 
@@ -85,6 +88,7 @@ export function WizardProvider({ children }: { children: ReactNode }) {
       setPresupuesto: (v) => setRequest((prev) => ({ ...prev, presupuesto: v })),
       setIntereses: (v) => setRequest((prev) => ({ ...prev, intereses: v })),
       setMovilidad: (v) => setRequest((prev) => ({ ...prev, movilidad: v ?? null })),
+      setSolicitudId: (id) => setRequest((prev) => ({ ...prev, solicitudId: id })),
       reset: () => setRequest(EMPTY_REQUEST),
     }),
     [request],

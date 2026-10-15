@@ -1,27 +1,11 @@
-/**
- * Módulo de Scoring Multicriterio Definitivo para Chaski.
- *
- * Evalúa recorridos candidatos de BEAM_SEARCH de forma normalizada (0–100),
- * determinista, desacoplada y explicable bajo 4 criterios ponderados:
- *  1. Cobertura de intereses: 35 %
- *  2. Aprovechamiento del tiempo: 25 %
- *  3. Compatibilidad presupuestaria: 20 %
- *  4. Eficiencia de desplazamiento: 20 %
- */
-
 import type { PlanStop } from './plan-engine';
 import { mapInterestsToCategories } from './viability';
 
 export interface MultiCriteriaScoreBreakdown {
-  /** Proporción de categorías solicitadas cubiertas sin duplicados (0–100). */
   coberturaIntereses: number;
-  /** Utilización del tiempo con margen de holgura razonable (0–100). */
   aprovechamientoTiempo: number;
-  /** Compatibilidad con el presupuesto asignado sin premiar gasto excesivo (0–100). */
   compatibilidadPresupuesto: number;
-  /** Relación entre tiempo de visita efectiva y tiempo de traslado (0–100). */
   eficienciaDesplazamiento: number;
-  /** Puntuación global ponderada (0–100). */
   scoreTotal: number;
 }
 
@@ -32,13 +16,6 @@ export const PESOS_SCORING = {
   eficienciaDesplazamiento: 0.20,
 } as const;
 
-/* ── 1. Cobertura de Intereses (35 %) ───────────────────────────────────── */
-
-/**
- * Evalúa la proporción de categorías solicitadas representadas en el recorrido.
- * - Evita contar repetidamente una misma categoría como cobertura adicional (usa Set).
- * - Si el usuario no especificó intereses, la cobertura es abierta (100).
- */
 export function calculateInterestCoverageScore(
   paradas: PlanStop[],
   interesesUsuario: string[],
@@ -74,14 +51,6 @@ export function calculateInterestCoverageScore(
   return Math.min(100, Math.max(0, ratio * 100));
 }
 
-/* ── 2. Aprovechamiento del Tiempo (25 %) ────────────────────────────────── */
-
-/**
- * Evalúa la proporción del tiempo disponible utilizada por el recorrido.
- * - Rechaza (0 pts) si el recorrido excede el límite disponible.
- * - Considera óptimo un aprovechamiento con margen de holgura (75% a 90% de uso = 100 pts).
- * - Ocupar el 100 % del tiempo recibe una ligera penalización (90 pts) respecto a dejar margen razonable.
- */
 export function calculateTimeUtilizationScore(
   tiempoTotalRutaMin: number,
   tiempoMaximoMin: number,
@@ -101,19 +70,10 @@ export function calculateTimeUtilizationScore(
     return Math.min(100, Math.max(0, (ratio / 0.75) * 100));
   }
 
-  // Por encima de 90% (hasta 100%): ajustado de 100 a 90 por falta de holgura
   const exceso = (ratio - 0.90) / 0.10;
   return Math.max(0, 100 - exceso * 10);
 }
 
-/* ── 3. Compatibilidad Presupuestaria (20 %) ────────────────────────────── */
-
-/**
- * Evalúa la compatibilidad del recorrido con el presupuesto disponible.
- * - No premia automáticamente un mayor gasto (gastar menos o ser gratuito es 100 % compatible).
- * - Si gasto_min y gasto_max existen en el contrato, se contemplan sin inventar valores ausentes.
- * - Un recorrido que apura el 100% del tope presupuestario recibe un leve descuento por riesgo (85 pts).
- */
 export function calculateBudgetCompatibilityScore(
   paradas: PlanStop[],
   presupuestoMaximo: number,
@@ -140,13 +100,10 @@ export function calculateBudgetCompatibilityScore(
 
   if (totalMax > presupuestoMaximo) {
     if (totalMin > presupuestoMaximo) return 0;
-    // Si el mínimo cabe pero el máximo excede
     const exceso = (totalMax - presupuestoMaximo) / presupuestoMaximo;
     return Math.max(0, Math.min(50, 50 - exceso * 50));
   }
 
-  // totalMax <= presupuestoMaximo: está holgadamente dentro del presupuesto
-  // Si está cómodamente por debajo del 85% del presupuesto (incluyendo 0 gasto): 100 pts
   if (totalMax <= 0.85 * presupuestoMaximo) {
     return 100;
   }
@@ -156,13 +113,6 @@ export function calculateBudgetCompatibilityScore(
   return Math.max(85, 100 - riesgo * 15);
 }
 
-/* ── 4. Eficiencia de Desplazamiento (20 %) ──────────────────────────────── */
-
-/**
- * Evalúa la relación entre el tiempo de visita efectiva y el tiempo de traslado.
- * - Utiliza los minutos reales de traslado estimados (traslado_desde_anterior_min), no la distancia en km.
- * - Un recorrido donde al menos el 75% del tiempo se dedica a la visita efectiva obtiene 100 pts.
- */
 export function calculateTravelEfficiencyScore(paradas: PlanStop[]): number {
   if (!paradas || paradas.length === 0) return 0;
 
@@ -182,8 +132,6 @@ export function calculateTravelEfficiencyScore(paradas: PlanStop[]): number {
   return Math.min(100, Math.max(0, (ratioVisita / 0.75) * 100));
 }
 
-/* ── Evaluación Global Ponderada ────────────────────────────────────────── */
-
 export interface ScoringParams {
   paradas: PlanStop[];
   interesesUsuario: string[];
@@ -192,9 +140,6 @@ export interface ScoringParams {
   presupuestoMaximo: number;
 }
 
-/**
- * Calcula el desglose y puntaje global normalizado (0–100) para un recorrido candidato.
- */
 export function calculateMultiCriteriaScore(
   params: ScoringParams,
 ): MultiCriteriaScoreBreakdown {

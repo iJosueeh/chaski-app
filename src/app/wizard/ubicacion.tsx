@@ -1,14 +1,14 @@
 /**
  * Wizard — Paso 1 de 5: UBICACIÓN.
  * Frame del Figma: "Ubicación (Paso 1) - Con Cancelación".
- * Dos tarjetas-ticket: "Usar mi ubicación" (GPS) y "Buscar una ubicación".
  */
 import { useState } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import * as Location from 'expo-location';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { useTheme } from '@/hooks/use-theme';
+import { Colors, Fonts } from '@/constants/theme';
 import { useWizard } from '@/features/wizard/context/wizard-context';
 import {
   StepIndicator,
@@ -17,19 +17,20 @@ import {
   WizardHeading,
   WizardTopBar,
 } from '@/features/wizard/components/wizard-ui';
+import { safeBackWizard, safeCancelWizard } from '@/features/wizard/utils/wizard-navigation';
+
+const palette = Colors.light;
+
+const SEARCH_LOCATION_ENABLED = false;
 
 export default function WizardUbicacion() {
-  const theme = useTheme();
+  const insets = useSafeAreaInsets();
   const { setUbicacion } = useWizard();
   const [busy, setBusy] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
 
-  const cancelar = () => {
-    router.dismissAll();
-    router.back();
-  };
-
-  const volver = () => router.back();
+  const cancelar = () => safeCancelWizard();
+  const volver = () => safeBackWizard('/(tabs)');
 
   /** GPS: pide permiso y toma la primera fix (watchPosition, patrón robusto en emuladores). */
   const usarGps = async () => {
@@ -39,7 +40,7 @@ export default function WizardUbicacion() {
     const timeout = setTimeout(() => {
       if (sub) sub.remove();
       setBusy(false);
-      setErrorMsg('El GPS tardó demasiado. Intenta de nuevo o elige "Buscar una ubicación".');
+      setErrorMsg('El GPS tardó demasiado. Intenta de nuevo.');
     }, 10000);
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
@@ -47,7 +48,7 @@ export default function WizardUbicacion() {
         clearTimeout(timeout);
         setBusy(false);
         setErrorMsg(
-          'Permiso de ubicación denegado. Actívalo en ajustes o elige "Buscar una ubicación".',
+          'Permiso de ubicación denegado. Actívalo en Ajustes e inténtalo de nuevo.',
         );
         return;
       }
@@ -80,12 +81,13 @@ export default function WizardUbicacion() {
   };
 
   return (
-    <View style={[styles.canvas, { backgroundColor: theme.background }]}>
+    <View style={[styles.canvas, { backgroundColor: palette.background }]}>
+      <WizardTopBar onBack={volver} onCancel={cancelar} />
+      <TocapuStrip />
       <ScrollView
         contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}>
-        <WizardTopBar onBack={volver} onCancel={cancelar} />
-        <TocapuStrip />
+        showsVerticalScrollIndicator={false}
+      >
         <View style={styles.headingBlock}>
           <WizardHeading
             title="¿Desde dónde empiezas?"
@@ -102,35 +104,49 @@ export default function WizardUbicacion() {
             selected={!busy}
             onPress={usarGps}
           />
-          <TicketCard
-            title="Buscar mi ubicación"
-            subtitle="Ingresa una dirección o lugar"
-            folio="BUSQ-002"
-            stamp="ORIGEN"
-            onPress={buscar}
-          />
+          {SEARCH_LOCATION_ENABLED && (
+            <TicketCard
+              title="Buscar mi ubicación"
+              subtitle="Ingresa una dirección o lugar"
+              folio="BUSQ-002"
+              stamp="ORIGEN"
+              onPress={buscar}
+            />
+          )}
         </View>
 
         {busy ? (
           <View style={styles.busyRow}>
-            <ActivityIndicator color={theme.primary} />
-            <Text style={[styles.busyText, { color: theme.textSecondary }]}>
+            <ActivityIndicator color={palette.primary} />
+            <Text style={[styles.busyText, { color: palette.textSecondary }]}>
               Obteniendo tu ubicación…
             </Text>
           </View>
         ) : null}
         {errorMsg ? (
-          <Text style={[styles.errorText, { color: theme.carmine }]}>{errorMsg}</Text>
+          <Text style={[styles.errorText, { color: palette.burgundy }]}>{errorMsg}</Text>
         ) : null}
 
-        <View style={styles.mapHint}>
-          <Text style={[styles.mapHintText, { color: theme.textSecondary }]}>
-            🗺️ Toca «Buscar mi ubicación» para elegir tu punto en un mapa interactivo
-          </Text>
-        </View>
+        {SEARCH_LOCATION_ENABLED && (
+          <View
+            style={[styles.mapHint, { backgroundColor: palette.surface, borderColor: palette.border }]}
+          >
+            <Text style={[styles.mapHintText, { color: palette.textSecondary }]}>
+              🗺️ Toca «Buscar mi ubicación» para elegir tu punto en un mapa interactivo
+            </Text>
+          </View>
+        )}
       </ScrollView>
 
-      <View style={[styles.footer, { backgroundColor: theme.background }]}>
+      <View
+        style={[
+          styles.footer,
+          {
+            backgroundColor: palette.background,
+            paddingBottom: Math.max(insets.bottom, 12) + 6,
+          },
+        ]}
+      >
         <StepIndicator step={1} />
       </View>
     </View>
@@ -144,12 +160,12 @@ const styles = StyleSheet.create({
   },
   headingBlock: {
     paddingHorizontal: 20,
-    paddingTop: 16,
+    paddingTop: 14,
   },
   cardsWrap: {
     paddingHorizontal: 20,
-    gap: 16,
-    marginTop: 20,
+    gap: 14,
+    marginTop: 16,
   },
   busyRow: {
     flexDirection: 'row',
@@ -159,26 +175,32 @@ const styles = StyleSheet.create({
     marginTop: 16,
   },
   busyText: {
-    fontFamily: 'IBMPlexMono_400Regular',
+    fontFamily: Fonts.mono,
     fontSize: 12,
   },
   errorText: {
-    fontFamily: 'IBMPlexMono_400Regular',
+    fontFamily: Fonts.mono,
     fontSize: 12,
     paddingHorizontal: 20,
     marginTop: 12,
   },
   mapHint: {
+    marginHorizontal: 20,
+    marginTop: 20,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 6,
+    borderWidth: 1,
     alignItems: 'center',
-    marginTop: 24,
   },
   mapHintText: {
-    fontFamily: 'IBMPlexMono_400Regular',
-    fontSize: 10,
+    fontFamily: Fonts.mono,
+    fontSize: 10.5,
     letterSpacing: 0.5,
+    textAlign: 'center',
   },
   footer: {
     paddingHorizontal: 20,
-    paddingTop: 10,
+    paddingTop: 8,
   },
 });

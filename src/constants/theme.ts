@@ -29,8 +29,9 @@ export const Colors = {
     primaryDark: '#7A2F15',     // Terracota pressed
     accent: '#D4AF37',          // Dorado ocre (sellos, recompensas, highlights)
     brand: '#4A2E18',           // Marrón profundo (logo, tinta)
-    surface: '#FFFDF9',         // Blanco cálido (tarjetas)
-    carmine: '#B71C1C',         // Rojo carmín (acentos de serie, error)
+    surface: '#FFFDF9',         // Blanco cálido / Marfil (tarjetas)
+    burgundy: '#7D2935',        // Borgoña Serie AX
+    carmine: '#7D2935',         // Borgoña Serie AX
     error: '#B71C1C',
     success: '#7A9E6D',         // Verde oliva
     border: '#E2D7C3',          // Borde sutil (grecas)
@@ -48,6 +49,7 @@ export const Colors = {
     accent: '#D4AF37',
     brand: '#D4AF37',
     surface: '#2A2119',
+    burgundy: '#E53935',
     carmine: '#E53935',
     error: '#E53935',
     success: '#8FBF7F',
