@@ -67,3 +67,133 @@ export interface AdminSetStatusResult {
   modificado_por?: string;
   error?: string;
 }
+
+/** Límites del nombre de usuario, alineados con el CHECK de la base de datos. */
+export const ADMIN_NOMBRE_MIN_LENGTH = 2;
+export const ADMIN_NOMBRE_MAX_LENGTH = 60;
+
+/** Datos editables de un usuario desde el panel de intendencia. */
+export interface AdminUpdateUserInput {
+  id: string;
+  nombre: string;
+  rol: UserRole;
+  estado: boolean;
+}
+
+/** Resultado de `admin_update_user`. */
+export interface AdminUpdateUserResult {
+  success: boolean;
+  usuario_id?: string;
+  nombre_anterior?: string;
+  nombre_nuevo?: string;
+  rol_anterior?: UserRole;
+  rol_nuevo?: UserRole;
+  estado_anterior?: boolean;
+  estado_nuevo?: boolean;
+  error?: string;
+}
+
+/** Resultado de `admin_anonymize_user` (baja definitiva sin DELETE físico). */
+export interface AdminAnonymizeUserResult {
+  success: boolean;
+  usuario_id?: string;
+  nombre_anterior?: string;
+  nombre_nuevo?: string;
+  error?: string;
+}
+
+/** Fila del listado administrativo de solicitudes de plan. */
+export interface AdminSolicitud {
+  id: string;
+  usuario_id: string;
+  usuario_nombre: string;
+  usuario_email: string;
+  fecha_hora_inicio: string;
+  fecha_hora_fin: string;
+  inicio_descripcion: string | null;
+  tipo_punto_final: string;
+  movilidad: string;
+  gasto_max: number | null;
+  fecha_creacion: string;
+  categorias: string;
+  estado_expedicion: string | null;
+}
+
+/** Filtros del listado de solicitudes. */
+export interface AdminPlansFilter {
+  search?: string;
+  limit?: number;
+  offset?: number;
+}
+
+/** Respuesta paginada de solicitudes. */
+export interface AdminGetSolicitudesResult {
+  solicitudes: AdminSolicitud[];
+  totalCount: number;
+}
+
+/** Fila del listado administrativo de expediciones. */
+export interface AdminExpedicion {
+  solicitud_id: string;
+  usuario_id: string;
+  usuario_nombre: string;
+  usuario_email: string;
+  estado_expedicion: string;
+  /** Nulo mientras la expedicion sigue en curso (columna nullable en la BD). */
+  completado_en: string | null;
+  total_paradas: number;
+  visitadas: number;
+  titulo_plan: string;
+}
+
+/** Respuesta paginada de expediciones. */
+export interface AdminGetExpedicionesResult {
+  expediciones: AdminExpedicion[];
+  totalCount: number;
+}
+
+/** Resultado genérico de una mutación administrativa. */
+export interface AdminMutationResult {
+  success: boolean;
+  error?: string;
+}
+
+/** Una fila del historial de acciones administrativas. */
+export interface AdminAccion {
+  id: string;
+  /**
+   * Código de la acción. Se deja como `string` (y no como unión cerrada) para
+   * que un valor nuevo en la base no rompa la pantalla: el formateador muestra
+   * el código crudo cuando no lo conoce.
+   */
+  accion: string;
+  objetivo_tipo: string;
+  objetivo_id: string | null;
+  detalle: Record<string, unknown>;
+  creado_en: string;
+  actor_nombre: string;
+  actor_email: string;
+}
+
+/** Respuesta paginada del historial de auditoría. */
+export interface AdminGetAccionesResult {
+  acciones: AdminAccion[];
+  totalCount: number;
+}
+
+/** Números de uso de la aplicación que revisa la intendencia. */
+export interface AdminBusinessMetrics {
+  usuarios_total: number;
+  usuarios_activos: number;
+  admins_total: number;
+  solicitudes_total: number;
+  solicitudes_ultimos_7_dias: number;
+  expediciones_total: number;
+  expediciones_completadas: number;
+  paradas_visitadas_total: number;
+  lugares_activos: number;
+  lugares_con_portada: number;
+  imagenes_total: number;
+  gasto_promedio_plan: number;
+  acciones_admin_total: number;
+}

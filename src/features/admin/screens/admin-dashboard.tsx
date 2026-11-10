@@ -16,14 +16,16 @@ import {
   useAdminMetrics,
   useAdminUsers,
   useAdminStatusManager,
+  useAdminUserMutations,
 } from "../hooks";
-import type { AdminUser } from "../interfaces/admin.interface";
+import type { AdminUpdateUserInput, AdminUser } from "../interfaces/admin.interface";
 import {
   AdminHeader,
   AdminMetricsCard,
   AdminFilters,
   AdminUserCard,
   AdminUserDetailModal,
+  AdminUserEditModal,
 } from "../components";
 
 export function AdminDashboardScreen() {
@@ -59,9 +61,13 @@ export function AdminDashboardScreen() {
 
   const { isUpdating, setUserStatus } = useAdminStatusManager();
 
+  // Mutaciones del CRUD de usuarios (Fase 1 · APF3)
+  const { saving, updateUser, anonymizeUser } = useAdminUserMutations();
+
   // Estados locales para detalle y modal
   const [selectedUser, setSelectedUser] = useState<AdminUser | null>(null);
   const [detailModalVisible, setDetailModalVisible] = useState<boolean>(false);
+  const [editModalVisible, setEditModalVisible] = useState<boolean>(false);
   const [refreshing, setRefreshing] = useState<boolean>(false);
 
   const handleRefreshAll = useCallback(async () => {
@@ -102,6 +108,69 @@ export function AdminDashboardScreen() {
     setFiltroRol(null);
     setFiltroEstado(null);
   }, [setSearch, setFiltroRol, setFiltroEstado]);
+
+  // ── CRUD de usuarios (Fase 1 · APF3) ──────────────────────────────────────
+  const handleOpenEdit = useCallback((targetUser: AdminUser) => {
+    setDetailModalVisible(false);
+    setSelectedUser(targetUser);
+    setEditModalVisible(true);
+  }, []);
+
+  const handleCloseEdit = useCallback(() => {
+    setEditModalVisible(false);
+  }, []);
+
+  const handleSaveUser = useCallback(
+    async (input: AdminUpdateUserInput) => {
+      const result = await updateUser(input);
+
+      if (result.success) {
+        setSelectedUser((prev) =>
+          prev && prev.id === input.id
+            ? {
+                ...prev,
+                nombre: result.nombre_nuevo ?? input.nombre,
+                rol: result.rol_nuevo ?? input.rol,
+                estado: result.estado_nuevo ?? input.estado,
+              }
+            : prev,
+        );
+
+        await Promise.all([reloadMetrics(), refetchUsers()]);
+
+        // Si el admin editó su propio perfil, refresca la sesión local.
+        if (user?.id === input.id) {
+          await refreshUserProfile();
+        }
+      }
+
+      return result;
+    },
+    [updateUser, reloadMetrics, refetchUsers, user?.id, refreshUserProfile],
+  );
+
+  const handleAnonymizeUser = useCallback(
+    async (userId: string) => {
+      const result = await anonymizeUser(userId);
+
+      if (result.success) {
+        setSelectedUser((prev) =>
+          prev && prev.id === userId
+            ? {
+                ...prev,
+                nombre: result.nombre_nuevo ?? "Usuario dado de baja",
+                estado: false,
+              }
+            : prev,
+        );
+
+        await Promise.all([reloadMetrics(), refetchUsers()]);
+      }
+
+      return result;
+    },
+    [anonymizeUser, reloadMetrics, refetchUsers],
+  );
 
   // Estado de carga de autorización
   if (profileLoading) {
@@ -254,6 +323,46 @@ export function AdminDashboardScreen() {
               onRetry={reloadMetrics}
             />
 
+            {/* Acceso al módulo de planes (Fase 1 · APF3) */}
+            <Pressable
+              style={styles.plansButton}
+              onPress={() => router.push("/admin/planes")}
+              accessible={true}
+              accessibilityRole="button"
+              accessibilityLabel="Abrir gestión de planes y expediciones"
+              testID="admin-open-plans-button"
+            >
+              <Text style={styles.plansButtonText}>
+                GESTIÓN DE PLANES Y EXPEDICIONES
+              </Text>
+              <Text style={styles.plansButtonArrow}>→</Text>
+            </Pressable>
+
+            {/* Acceso a las fotos de los destinos (Unidad 3) */}
+            <Pressable
+              style={styles.plansButton}
+              onPress={() => router.push("/admin/lugares")}
+              accessible={true}
+              accessibilityRole="button"
+              accessibilityLabel="Abrir fotografías de destinos"
+              testID="admin-open-places-button"
+            >
+              <Text style={styles.plansButtonText}>FOTOGRAFÍAS DE DESTINOS</Text>
+              <Text style={styles.plansButtonArrow}>→</Text>
+            </Pressable>
+
+            <Pressable
+              style={styles.plansButton}
+              onPress={() => router.push("/admin/auditoria")}
+              accessible={true}
+              accessibilityRole="button"
+              accessibilityLabel="Abrir la auditoría de intendencia"
+              testID="admin-open-audit-button"
+            >
+              <Text style={styles.plansButtonText}>AUDITORÍA DE INTENDENCIA</Text>
+              <Text style={styles.plansButtonArrow}>→</Text>
+            </Pressable>
+
             {/* Buscador y filtros */}
             <AdminFilters
               search={search}
@@ -396,6 +505,17 @@ export function AdminDashboardScreen() {
         currentUserId={user?.id ?? null}
         onStatusChange={handleStatusChange}
         isUpdating={isUpdating}
+        onEditUser={handleOpenEdit}
+      />
+
+      <AdminUserEditModal
+        user={selectedUser}
+        visible={editModalVisible}
+        onClose={handleCloseEdit}
+        currentUserId={user?.id ?? null}
+        onSave={handleSaveUser}
+        onAnonymize={handleAnonymizeUser}
+        isSaving={saving}
       />
     </View>
   );
@@ -657,5 +777,29 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.mono,
     fontSize: 11,
     color: Colors.light.textSecondary,
+  },
+  plansButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginTop: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: Colors.light.border,
+    backgroundColor: Colors.light.surface,
+  },
+  plansButtonText: {
+    fontFamily: Fonts.mono,
+    fontSize: 10,
+    fontWeight: "700",
+    letterSpacing: 0.8,
+    color: Colors.light.brand,
+  },
+  plansButtonArrow: {
+    fontFamily: Fonts.mono,
+    fontSize: 14,
+    color: Colors.light.carmine,
   },
 });
