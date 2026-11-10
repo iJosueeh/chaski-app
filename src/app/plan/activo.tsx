@@ -28,7 +28,10 @@ import { Colors, Fonts } from '@/constants/theme';
 import { TocapuStrip, WizardButton, WizardTopBar } from '@/features/wizard/components/wizard-ui';
 import { usePlans } from '@/features/plans/context/plans-context';
 import { useNearbyStop } from '@/features/plans/hooks/use-nearby-stop';
-import { notifyNearbyStop } from '@/features/plans/services/notifications.service';
+import {
+  notifyNearbyStop,
+  scheduleStopReminder,
+} from '@/features/plans/services/notifications.service';
 import {
   buildMapsNavigationUrl,
   formatStopArrivalLabel,
@@ -58,6 +61,27 @@ export default function PlanActivoScreen() {
     habilitado: Boolean(planActivo),
   });
   const ultimaParadaAvisada = useRef<number | null>(null);
+  const recordatorioProgramadoPara = useRef<string | null>(null);
+
+  // Recordatorio: se programa para la siguiente parada pendiente y se vuelve a
+  // programar cuando esa parada cambia (al marcar una visitada, por ejemplo).
+  const siguientePendiente = planActivo?.paradas.find(
+    (parada) => !visitadas.includes(parada.orden),
+  );
+
+  useEffect(() => {
+    if (!siguientePendiente) {
+      return;
+    }
+
+    const clave = `${siguientePendiente.orden}-${siguientePendiente.llegada}`;
+    if (recordatorioProgramadoPara.current === clave) {
+      return;
+    }
+
+    recordatorioProgramadoPara.current = clave;
+    void scheduleStopReminder(siguientePendiente.place.nombre, siguientePendiente.llegada);
+  }, [siguientePendiente]);
 
   useEffect(() => {
     const parada = cercana.parada;
