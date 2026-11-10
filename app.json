@@ -40,6 +40,25 @@
       "expo-web-browser",
       "react-native-maps",
       [
+        "expo-image-picker",
+        {
+          "photosPermission": "Chaski usa tus fotos para la imagen de perfil y para las fotos de los destinos del catalogo.",
+          "cameraPermission": "Chaski usa la camara para tomar tu foto de perfil y fotografias de los destinos."
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Chaski usa tu ubicacion para avisarte cuando estas cerca de una parada del recorrido."
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "color": "#9C3E1B"
+        }
+      ],
+      [
         "expo-navigation-bar",
         {
           "style": "light"
