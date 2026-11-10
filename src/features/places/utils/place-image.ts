@@ -5,6 +5,9 @@
  * Este modulo no habla con Supabase a proposito, para poder probarlo sin red.
  */
 
+import { generateUuid } from '@/shared/utils/uuid';
+
+
 export const PLACES_BUCKET = "places";
 export const MAX_PLACE_IMAGE_SIZE_BYTES = 5 * 1024 * 1024; // 5 MB
 export const ALLOWED_PLACE_IMAGE_MIMES = [
@@ -80,14 +83,7 @@ export function generatePlaceStoragePath(
   lugarId: string,
   extension: "jpg" | "png" | "webp",
 ): string {
-  const fileUuid = crypto.randomUUID
-    ? crypto.randomUUID()
-    : "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
-        const r = (Math.random() * 16) | 0;
-        const v = c === "x" ? r : (r & 0x3) | 0x8;
-        return v.toString(16);
-      });
-  return `${lugarId}/${fileUuid}.${extension}`;
+  return `${lugarId}/${generateUuid()}.${extension}`;
 }
 
 export interface PlaceImageValidation {
