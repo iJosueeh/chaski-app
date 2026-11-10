@@ -338,6 +338,19 @@ export function AdminDashboardScreen() {
               <Text style={styles.plansButtonArrow}>→</Text>
             </Pressable>
 
+            {/* Acceso a las fotos de los destinos (Unidad 3) */}
+            <Pressable
+              style={styles.plansButton}
+              onPress={() => router.push("/admin/lugares")}
+              accessible={true}
+              accessibilityRole="button"
+              accessibilityLabel="Abrir fotografías de destinos"
+              testID="admin-open-places-button"
+            >
+              <Text style={styles.plansButtonText}>FOTOGRAFÍAS DE DESTINOS</Text>
+              <Text style={styles.plansButtonArrow}>→</Text>
+            </Pressable>
+
             {/* Buscador y filtros */}
             <AdminFilters
               search={search}

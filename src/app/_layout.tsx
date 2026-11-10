@@ -65,6 +65,7 @@ function RootNavigator() {
           <Stack.Screen name="change-password" />
           <Stack.Screen name="admin" />
           <Stack.Screen name="admin/planes" />
+          <Stack.Screen name="admin/lugares" />
           <Stack.Screen name="places" />
           <Stack.Screen name="place/[id]" />
           <Stack.Screen name="wizard/ubicacion" />
