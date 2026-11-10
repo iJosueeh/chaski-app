@@ -351,6 +351,8 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   fieldValue: {
+    flexShrink: 1,
+    textAlign: 'right',
     fontFamily: Fonts.sans,
     fontSize: 12,
     color: Colors.light.brand,
