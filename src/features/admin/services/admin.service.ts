@@ -1,8 +1,11 @@
 import { supabase } from '@/lib/supabase';
 import { sanitizeAdminError } from '@/shared/utils/sanitize-admin-error';
 import type {
+  AdminAccion,
   AdminAnonymizeUserResult,
+  AdminBusinessMetrics,
   AdminExpedicion,
+  AdminGetAccionesResult,
   AdminGetExpedicionesResult,
   AdminGetSolicitudesResult,
   AdminGetUsersResult,
@@ -374,5 +377,107 @@ export async function deleteAdminExpedicion(
     return { success: true };
   } catch (err: any) {
     return { success: false, error: sanitizeAdminError(err) };
+  }
+}
+
+/**
+ * Forma cruda de una fila del historial de auditoría. Igual que las demás
+ * filas internas, no sale de este archivo.
+ */
+interface AccionRow {
+  id: string;
+  accion: string;
+  objetivo_tipo: string;
+  objetivo_id: string | null;
+  detalle: Record<string, unknown> | null;
+  creado_en: string;
+  actor_nombre: string | null;
+  actor_email: string | null;
+  total_count: number | string | null;
+}
+
+/** Convierte un valor suelto de la base en número, con 0 como respaldo. */
+function toNumber(value: unknown): number {
+  const numero = Number(value);
+  return Number.isFinite(numero) ? numero : 0;
+}
+
+/** Normaliza el JSON de métricas a la interfaz, sin confiar en sus claves. */
+function normalizeBusinessMetrics(values: Record<string, unknown>): AdminBusinessMetrics {
+  return {
+    usuarios_total: toNumber(values.usuarios_total),
+    usuarios_activos: toNumber(values.usuarios_activos),
+    admins_total: toNumber(values.admins_total),
+    solicitudes_total: toNumber(values.solicitudes_total),
+    solicitudes_ultimos_7_dias: toNumber(values.solicitudes_ultimos_7_dias),
+    expediciones_total: toNumber(values.expediciones_total),
+    expediciones_completadas: toNumber(values.expediciones_completadas),
+    paradas_visitadas_total: toNumber(values.paradas_visitadas_total),
+    lugares_activos: toNumber(values.lugares_activos),
+    lugares_con_portada: toNumber(values.lugares_con_portada),
+    imagenes_total: toNumber(values.imagenes_total),
+    gasto_promedio_plan: toNumber(values.gasto_promedio_plan),
+    acciones_admin_total: toNumber(values.acciones_admin_total),
+  };
+}
+
+/** Lista el historial de acciones administrativas, de lo más nuevo a lo más viejo. */
+export async function fetchAdminAcciones(
+  limit = 30,
+  offset = 0,
+): Promise<{ data: AdminGetAccionesResult | null; error?: string }> {
+  const limiteSeguro = Math.max(1, Math.min(limit, 100));
+  const desplazamiento = Math.max(0, offset);
+
+  try {
+    const { data, error } = await supabase.rpc('admin_get_acciones', {
+      p_limit: limiteSeguro,
+      p_offset: desplazamiento,
+    });
+
+    if (error) {
+      return { data: null, error: sanitizeAdminError(error) };
+    }
+
+    const rows = (Array.isArray(data) ? data : []) as unknown as AccionRow[];
+    const totalCount =
+      rows.length > 0 && rows[0]?.total_count ? Number(rows[0].total_count) : 0;
+
+    const acciones: AdminAccion[] = rows.map((row) => ({
+      id: row.id,
+      accion: row.accion ?? '',
+      objetivo_tipo: row.objetivo_tipo ?? '',
+      objetivo_id: row.objetivo_id ?? null,
+      detalle: row.detalle ?? {},
+      creado_en: row.creado_en,
+      actor_nombre: row.actor_nombre ?? '',
+      actor_email: row.actor_email ?? '',
+    }));
+
+    return { data: { acciones, totalCount } };
+  } catch (err: any) {
+    return { data: null, error: sanitizeAdminError(err) };
+  }
+}
+
+/** Lee los números de uso de la aplicación para el tablero de intendencia. */
+export async function fetchAdminBusinessMetrics(): Promise<{
+  data: AdminBusinessMetrics | null;
+  error?: string;
+}> {
+  try {
+    const { data, error } = await supabase.rpc('admin_get_business_metrics');
+
+    if (error) {
+      return { data: null, error: sanitizeAdminError(error) };
+    }
+
+    if (!data || typeof data !== 'object') {
+      return { data: null, error: 'No se pudieron leer las métricas de uso.' };
+    }
+
+    return { data: normalizeBusinessMetrics(data as Record<string, unknown>) };
+  } catch (err: any) {
+    return { data: null, error: sanitizeAdminError(err) };
   }
 }

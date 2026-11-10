@@ -9,3 +9,4 @@
 export { AdminDashboardScreen } from './screens/admin-dashboard';
 export { AdminPlanesScreen } from './screens/admin-planes-screen';
 export { AdminLugaresScreen } from './screens/admin-lugares-screen';
+export { AdminAuditoriaScreen } from './screens/admin-auditoria-screen';

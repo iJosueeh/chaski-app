@@ -351,6 +351,18 @@ export function AdminDashboardScreen() {
               <Text style={styles.plansButtonArrow}>→</Text>
             </Pressable>
 
+            <Pressable
+              style={styles.plansButton}
+              onPress={() => router.push("/admin/auditoria")}
+              accessible={true}
+              accessibilityRole="button"
+              accessibilityLabel="Abrir la auditoría de intendencia"
+              testID="admin-open-audit-button"
+            >
+              <Text style={styles.plansButtonText}>AUDITORÍA DE INTENDENCIA</Text>
+              <Text style={styles.plansButtonArrow}>→</Text>
+            </Pressable>
+
             {/* Buscador y filtros */}
             <AdminFilters
               search={search}

@@ -157,3 +157,43 @@ export interface AdminMutationResult {
   success: boolean;
   error?: string;
 }
+
+/** Una fila del historial de acciones administrativas. */
+export interface AdminAccion {
+  id: string;
+  /**
+   * Código de la acción. Se deja como `string` (y no como unión cerrada) para
+   * que un valor nuevo en la base no rompa la pantalla: el formateador muestra
+   * el código crudo cuando no lo conoce.
+   */
+  accion: string;
+  objetivo_tipo: string;
+  objetivo_id: string | null;
+  detalle: Record<string, unknown>;
+  creado_en: string;
+  actor_nombre: string;
+  actor_email: string;
+}
+
+/** Respuesta paginada del historial de auditoría. */
+export interface AdminGetAccionesResult {
+  acciones: AdminAccion[];
+  totalCount: number;
+}
+
+/** Números de uso de la aplicación que revisa la intendencia. */
+export interface AdminBusinessMetrics {
+  usuarios_total: number;
+  usuarios_activos: number;
+  admins_total: number;
+  solicitudes_total: number;
+  solicitudes_ultimos_7_dias: number;
+  expediciones_total: number;
+  expediciones_completadas: number;
+  paradas_visitadas_total: number;
+  lugares_activos: number;
+  lugares_con_portada: number;
+  imagenes_total: number;
+  gasto_promedio_plan: number;
+  acciones_admin_total: number;
+}
