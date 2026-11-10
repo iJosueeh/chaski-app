@@ -7,3 +7,4 @@
  * (p. ej. `@/features/admin/services/admin.service`).
  */
 export { AdminDashboardScreen } from './screens/admin-dashboard';
+export { AdminPlanesScreen } from './screens/admin-planes-screen';

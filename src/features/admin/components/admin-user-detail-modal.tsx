@@ -18,6 +18,8 @@ export interface AdminUserDetailModalProps {
   currentUserId: string | null;
   onStatusChange: (userId: string, newStatus: boolean) => Promise<{ success: boolean; error?: string }>;
   isUpdating: boolean;
+  /** Opcional: abre el modal de edición de datos/rol (Fase 1 · APF3). */
+  onEditUser?: (user: AdminUser) => void;
 }
 
 export function AdminUserDetailModal({
@@ -27,6 +29,7 @@ export function AdminUserDetailModal({
   currentUserId,
   onStatusChange,
   isUpdating,
+  onEditUser,
 }: AdminUserDetailModalProps) {
   const [confirmingAction, setConfirmingAction] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -167,6 +170,20 @@ export function AdminUserDetailModal({
 
           {/* Sección de acciones de seguridad */}
           <View style={styles.actionsContainer}>
+            {onEditUser && (
+              <Pressable
+                style={styles.actionButton}
+                onPress={() => onEditUser(user)}
+                disabled={isUpdating}
+                accessible={true}
+                accessibilityRole="button"
+                accessibilityLabel="Editar datos y rol del usuario"
+                testID="admin-open-edit-button"
+              >
+                <Text style={styles.actionButtonText}>EDITAR DATOS Y ROL</Text>
+              </Pressable>
+            )}
+
             {isCurrentUser ? (
               // Regla de seguridad: Impedir auto-desactivación
               <View style={styles.selfNoticeBox} testID="admin-self-deactivation-warning">

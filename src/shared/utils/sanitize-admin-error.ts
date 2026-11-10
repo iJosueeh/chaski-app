@@ -20,6 +20,30 @@ export function sanitizeAdminError(err: any): string {
   if (msg.includes('USER_NOT_FOUND') || err.code === 'P0002') {
     return 'El usuario especificado no fue encontrado.';
   }
+  if (msg.includes('CANNOT_DEMOTE_SELF')) {
+    return 'No puedes quitarte tu propio rol de administrador.';
+  }
+  if (msg.includes('CANNOT_DELETE_SELF')) {
+    return 'No puedes dar de baja tu propia cuenta.';
+  }
+  if (msg.includes('INVALID_NAME')) {
+    return 'El nombre debe tener entre 2 y 60 caracteres.';
+  }
+  if (msg.includes('INVALID_ROLE')) {
+    return 'El rol debe ser USUARIO o ADMIN.';
+  }
+  if (msg.includes('INVALID_STATUS')) {
+    return 'El estado de la cuenta no es válido.';
+  }
+  if (msg.includes('INVALID_TARGET')) {
+    return 'No se indicó un usuario válido para la operación.';
+  }
+  if (msg.includes('SOLICITUD_NOT_FOUND')) {
+    return 'La solicitud de plan ya no existe.';
+  }
+  if (msg.includes('EXPEDICION_NOT_FOUND')) {
+    return 'La expedición ya no existe.';
+  }
   if (msg.includes('PGRST202') || msg.includes('Could not find the function')) {
     return 'Las funciones administrativas de base de datos aún no han sido desplegadas en el servidor.';
   }
