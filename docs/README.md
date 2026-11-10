@@ -64,17 +64,19 @@ graph LR
 | **01. Producto** | [Visión del producto](./01-producto/vision.md) | Todo el equipo | Propuesta de valor, principios rectores y diferenciadores frente a apps de mapas tradicionales. |
 | | [Problema y objetivos](./01-producto/problema-y-objetivos.md) | Negocio / Devs | Formulación del problema general, PE01–PE04 y objetivos específicos OE01–OE04. |
 | | [Alcance](./01-producto/alcance.md) | Negocio / Devs | Límites claros del MVP (In-scope vs Out-of-scope). |
-| **02. Requisitos** | [Requisitos funcionales](./02-requisitos/requisitos-funcionales.md) | Devs / QA | 29 RF estructurados desde autenticación hasta administración. |
+| **02. Requisitos** | [Requisitos funcionales](./02-requisitos/requisitos-funcionales.md) | Devs / QA | 33 RF estructurados, desde autenticación hasta la administración y el recorrido asistido. |
 | | [Requisitos no funcionales](./02-requisitos/requisitos-no-funcionales.md) | Arquitectura / DevOps | Rendimiento, seguridad, disponibilidad y compatibilidad. |
 | | [Reglas de negocio](./02-requisitos/reglas-negocio.md) | Devs / QA | Políticas de validación, tiempos, gastos y estados del plan. |
 | | [Trazabilidad](./02-requisitos/trazabilidad.md) | Gestión / QA | Matriz cruzada de Objetivos ↔ Requisitos ↔ Casos de Uso. |
-| **03. Modelado** | [Casos de uso](./03-modelado/casos-uso.md) | Devs / QA | CU01 a CU09 detallados con diagramas de flujo y precondiciones. |
+| **03. Modelado** | [Casos de uso](./03-modelado/casos-uso.md) | Devs / QA | CU01 a CU13 detallados con diagramas de flujo y precondiciones. |
 | | [Modelo de dominio](./03-modelado/modelo-dominio.md) | Devs / Arquitectura | Entidades, agregados, valor y reglas del dominio. |
 | | [Modelo de datos](./03-modelado/modelo-datos.md) | Data / Backend | Esquema relacional DDL de 14 tablas en PostgreSQL. |
 | | [Diagramas de secuencia](./03-modelado/secuencias.md) | Devs / Frontend | Interacción temporal entre Cliente, Supabase Auth, Edge Functions y Geo API. |
 | **04. Arquitectura** | [Arquitectura general](./04-arquitectura/arquitectura-general.md) | Arquitectura / Devs | Separación por capas, políticas RLS y aislamiento de secretos. |
 | | [Generador de planes](./04-arquitectura/generador-planes.md) | Backend / Algoritmo | Pipeline interno y diseño de la Edge Function `generate-plans`. |
-| **05. Algoritmo** | [Generación de rutas](./05-algoritmo/generacion-rutas.md) | Backend / Algoritmo | Beam Search determinístico, pesos de puntuación y diversidad Jaccard. |
+| **05. Algoritmo** | [Generación de rutas](./05-algoritmo/generacion-rutas.md) | Backend / Algoritmo | Beam Search determinístico, pesos de puntuación, control de diversidad y reordenamiento geográfico de paradas. |
+| **06. Evidencia** | [Capturas](./capturas/README.md) | Todo el equipo / Docente | Imágenes de la aplicación en ejecución que respaldan los requisitos implementados. |
+| **06. Entrega** | [Registro de cambios](./06-entrega/registro-de-cambios.md) | Todo el equipo / Docente | Ramas, commits y PR de la entrega, explicados uno por uno. |
 
 ---
 

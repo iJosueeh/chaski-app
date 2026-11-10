@@ -306,6 +306,120 @@ Los reportes tendrán carácter informativo y serán obtenidos a partir de la in
 
 ---
 
+## RF21 — Consultar el padrón de usuarios
+
+**Prioridad:** Alta
+
+El sistema deberá permitir que un administrador consulte el listado completo de cuentas registradas, con su nombre, correo, rol y estado de acceso, y que pueda buscar por nombre o correo y filtrar por rol y por estado.
+
+---
+
+## RF22 — Editar los datos y el rol de un usuario
+
+**Prioridad:** Alta
+
+El sistema deberá permitir que un administrador modifique el nombre visible y el rol de una cuenta, validando que el nombre tenga entre 2 y 60 caracteres y que el rol sea uno de los valores admitidos.
+
+El sistema no deberá permitir que un administrador modifique su propio rol ni que desactive su propia cuenta.
+
+---
+
+## RF23 — Dar de baja una cuenta
+
+**Prioridad:** Alta
+
+El sistema deberá permitir que un administrador dé de baja una cuenta de usuario, de modo que se anule su nombre visible y se bloquee su acceso, conservando el registro histórico asociado a esa cuenta.
+
+La baja requerirá una confirmación explícita del administrador antes de ejecutarse.
+
+---
+
+## RF24 — Supervisar las solicitudes de plan
+
+**Prioridad:** Media
+
+El sistema deberá permitir que un administrador consulte las solicitudes de planificación registradas por todos los usuarios, indicando el usuario, la ventana horaria, la movilidad, el presupuesto y los intereses declarados, y que pueda eliminarlas con confirmación explícita.
+
+---
+
+## RF25 — Supervisar las expediciones
+
+**Prioridad:** Media
+
+El sistema deberá permitir que un administrador consulte las expediciones registradas por todos los usuarios, indicando el estado de la expedición y el avance de paradas visitadas, y que pueda eliminarlas con confirmación explícita.
+
+---
+
+## RF26 — Administrar las fotografías de los destinos
+
+**Prioridad:** Alta
+
+El sistema deberá permitir que un administrador incorpore fotografías a un destino del catálogo, tomándolas con la cámara del dispositivo o eligiéndolas de la galería, y deberá validar que el archivo sea una imagen JPEG, PNG o WebP de hasta 5 MB antes de almacenarlo.
+
+---
+
+## RF27 — Marcar la portada y eliminar fotografías de un destino
+
+**Prioridad:** Media
+
+El sistema deberá permitir que un administrador designe una de las fotografías de un destino como portada y que elimine fotografías existentes, retirando también el archivo del almacenamiento para no dejar archivos huérfanos.
+
+---
+
+## RF28 — Consultar el historial de acciones administrativas
+
+**Prioridad:** Alta
+
+El sistema deberá registrar automáticamente cada modificación hecha por un administrador sobre cuentas, solicitudes de plan y expediciones, indicando quién la realizó, qué acción ejecutó, sobre qué registro y en qué momento, y deberá permitir que un administrador consulte ese historial de forma paginada.
+
+El registro de estas acciones no dependerá de la aplicación: se generará en la base de datos al producirse el cambio.
+
+---
+
+## RF29 — Consultar las métricas de uso
+
+**Prioridad:** Media
+
+El sistema deberá permitir que un administrador consulte un resumen del uso de la aplicación que incluya la cantidad de cuentas registradas y activas, las solicitudes de planificación, las expediciones registradas y completadas, las paradas visitadas, los destinos activos y los destinos con fotografía de portada.
+
+---
+
+## RF30 — Avisar la cercanía de la siguiente parada
+
+**Prioridad:** Media
+
+El sistema deberá avisar al usuario cuando se encuentre a menos de una distancia configurable de la siguiente parada pendiente del recorrido activo, indicando el nombre del destino y la distancia restante, y deberá ofrecer la opción de marcarla como visitada.
+
+El aviso dependerá del permiso de ubicación del dispositivo y su ausencia no deberá impedir el uso del recorrido.
+
+---
+
+## RF31 — Recordar la próxima parada del recorrido
+
+**Prioridad:** Media
+
+El sistema deberá programar un recordatorio para la siguiente parada pendiente del recorrido activo, que se notifique minutos antes de la hora de llegada estimada, y deberá reprogramarlo cuando cambie la parada pendiente.
+
+---
+
+## RF32 — Tomar una fotografía con la cámara del dispositivo
+
+**Prioridad:** Media
+
+El sistema deberá permitir que el usuario incorpore una fotografía de perfil tomándola con la cámara del dispositivo o eligiéndola de la galería, solicitando el permiso correspondiente en el momento de usarla y no al iniciar la aplicación.
+
+---
+
+## RF33 — Optimizar el orden geográfico de las paradas
+
+**Prioridad:** Alta
+
+El sistema deberá ordenar las paradas de cada plan generado de modo que se reduzca el desplazamiento total del recorrido, manteniendo fijas la primera parada y las condiciones de horario, presupuesto y viabilidad que dieron origen al plan.
+
+Cuando ningún orden alternativo resulte factible o no represente una mejora apreciable, el sistema deberá conservar el orden original.
+
+---
+
 # 4. Relación con los casos de uso
 
 | Requisito | Caso de uso principal |
@@ -332,6 +446,21 @@ Los reportes tendrán carácter informativo y serán obtenidos a partir de la in
 | RF20 | CU09 — Consultar reportes |
 
 ---
+
+| RF21 | CU10 — Administrar usuarios |
+| RF22 | CU10 — Administrar usuarios |
+| RF23 | CU10 — Administrar usuarios |
+| RF24 | CU11 — Supervisar planes y expediciones |
+| RF25 | CU11 — Supervisar planes y expediciones |
+| RF26 | CU12 — Administrar fotografías de destinos |
+| RF27 | CU12 — Administrar fotografías de destinos |
+| RF28 | CU13 — Auditar las acciones de intendencia |
+| RF29 | CU13 — Auditar las acciones de intendencia |
+| RF30 | CU05 — Gestionar recorrido activo |
+| RF31 | CU05 — Gestionar recorrido activo |
+| RF32 | CU01 — Gestionar cuenta y preferencias |
+| RF33 | CU03 — Generar alternativas |
+
 
 # 5. Fuera del alcance funcional
 

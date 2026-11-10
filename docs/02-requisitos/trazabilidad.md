@@ -16,8 +16,8 @@ La relación general utilizada es:
 ```mermaid
 flowchart LR
     P["🎯 PROBLEMA\n(PE01–PE04)"] --> O["🏁 OBJETIVO\n(OE01–OE04)"]
-    O --> RF["📋 REQUISITO\n(RF01–RF29)"]
-    RF --> CU["👤 CASO DE USO\n(CU01–CU09)"]
+    O --> RF["📋 REQUISITO\n(RF01–RF33)"]
+    RF --> CU["👤 CASO DE USO\n(CU01–CU13)"]
     CU --> RN["⚖️ REGLAS DE NEGOCIO\n(USR, SOL, PLA...)"]
 
     style P fill:#FFEBEE,stroke:#C62828
@@ -353,3 +353,42 @@ La matriz deberá actualizarse cuando se agregue, modifique o elimine un requisi
 - [Requisitos no funcionales](./requisitos-no-funcionales.md)
 - [Reglas de negocio](./reglas-negocio.md)
 - [Casos de uso](../03-modelado/casos-uso.md)
+
+---
+
+## 5. Trazabilidad de la administración y del recorrido asistido
+
+Esta sección relaciona los requisitos incorporados con los archivos que los implementan y con las pruebas que los respaldan. Todas las pruebas se ejecutan con `npm test`.
+
+### 5.1. Administración de usuarios y planes
+
+| Requisito | Implementación | Pruebas |
+|---|---|---|
+| RF21 — Consultar el padrón | `src/features/admin/screens/admin-dashboard.tsx`, `hooks/use-admin-users.ts`, `services/admin.service.ts` | `__tests__/admin-service.test.ts`, `__tests__/admin-hooks.test.ts`, `__tests__/admin-ui.test.ts` |
+| RF22 — Editar datos y rol | `components/admin-user-edit-modal.tsx`, `hooks/use-admin-user-mutations.ts`, `utils/admin-validation.ts` | `__tests__/admin-crud.test.ts` |
+| RF23 — Dar de baja una cuenta | `services/admin.service.ts` (`anonymizeAdminUser`), `utils/admin-validation.ts` | `__tests__/admin-crud.test.ts` |
+| RF24 — Supervisar solicitudes | `screens/admin-planes-screen.tsx`, `hooks/use-admin-plans.ts` | `__tests__/admin-crud.test.ts`, `__tests__/admin-plan-formatters.test.ts` |
+| RF25 — Supervisar expediciones | `screens/admin-planes-screen.tsx`, `hooks/use-admin-plans.ts` | `__tests__/admin-crud.test.ts` |
+
+### 5.2. Fotografías de destinos
+
+| Requisito | Implementación | Pruebas |
+|---|---|---|
+| RF26 — Incorporar fotografías | `screens/admin-lugares-screen.tsx`, `hooks/use-admin-places.ts`, `places/services/places-storage.service.ts`, `places/utils/place-image.ts` | `places/__tests__/place-image-validation.test.ts`, `shared/utils/__tests__/uuid.test.ts` |
+| RF27 — Portada y eliminación | `hooks/use-admin-places.ts`, `places/services/places-storage.service.ts` | `places/__tests__/place-image-validation.test.ts` |
+
+### 5.3. Auditoría y métricas
+
+| Requisito | Implementación | Pruebas |
+|---|---|---|
+| RF28 — Historial de acciones | `supabase/migrations/20261110160000_admin_auditoria.sql`, `screens/admin-auditoria-screen.tsx`, `hooks/use-admin-auditoria.ts`, `utils/admin-audit-formatters.ts` | `__tests__/admin-audit-formatters.test.ts`, `__tests__/admin-auditoria.test.ts` |
+| RF29 — Métricas de uso | `services/admin.service.ts` (`fetchAdminBusinessMetrics`), `screens/admin-auditoria-screen.tsx` | `__tests__/admin-auditoria.test.ts` |
+
+### 5.4. Recorrido asistido y motor
+
+| Requisito | Implementación | Pruebas |
+|---|---|---|
+| RF30 — Aviso de parada cercana | `plans/hooks/use-nearby-stop.ts`, `plans/utils/nearby-stop.ts`, `src/app/plan/activo.tsx` | `plans/__tests__/nearby-stop.test.ts` |
+| RF31 — Recordatorio del recorrido | `plans/services/notifications.service.ts`, `plans/utils/plan-reminders.ts`, `src/app/plan/activo.tsx` | `plans/__tests__/plan-reminders.test.ts` |
+| RF32 — Fotografía con la cámara | `preferences/components/profile-identity-card.tsx`, `shared/utils/image-bytes.ts` | `shared/utils/__tests__/uuid.test.ts`, `auth/__tests__/profile-storage.test.ts` |
+| RF33 — Orden geográfico de paradas | `plan-engine/route-order.ts`, `plan-engine/plan-engine.ts` | `plan-engine/__tests__/route-order.test.ts`, `plan-engine/__tests__/golden-escenarios.test.ts` |
