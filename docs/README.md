@@ -76,6 +76,7 @@ graph LR
 | | [Generador de planes](./04-arquitectura/generador-planes.md) | Backend / Algoritmo | Pipeline interno y diseño de la Edge Function `generate-plans`. |
 | **05. Algoritmo** | [Generación de rutas](./05-algoritmo/generacion-rutas.md) | Backend / Algoritmo | Beam Search determinístico, pesos de puntuación, control de diversidad y reordenamiento geográfico de paradas. |
 | **06. Evidencia** | [Capturas](./capturas/README.md) | Todo el equipo / Docente | Imágenes de la aplicación en ejecución que respaldan los requisitos implementados. |
+| **06. Entrega** | [Registro de cambios](./06-entrega/registro-de-cambios.md) | Todo el equipo / Docente | Ramas, commits y PR de la entrega, explicados uno por uno. |
 
 ---
 
