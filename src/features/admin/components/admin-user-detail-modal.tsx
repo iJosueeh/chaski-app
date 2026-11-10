@@ -465,6 +465,8 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     justifyContent: 'center',
     alignItems: 'center',
+    // Sin fondo propio, el texto blanco quedaba invisible sobre la tarjeta.
+    backgroundColor: Colors.light.primary,
   },
   actionButtonText: {
     fontFamily: Fonts.mono,
