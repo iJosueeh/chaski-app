@@ -1,6 +1,11 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { User } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
+import { base64ToUint8Array, readBinaryFromUri } from '@/shared/utils/image-bytes';
+
+// Se reexportan porque ya formaban parte de este modulo y las pruebas los
+// importan desde aqui; la implementacion vive ahora en shared/utils.
+export { base64ToUint8Array, readBinaryFromUri };
 
 export const AVATAR_BUCKET = 'avatars';
 export const MIN_AVATAR_SIZE_BYTES = 100; 
@@ -41,28 +46,6 @@ export function detectImageFormat(bytes: Uint8Array): ImageFormatInfo | null {
   }
 
   return null;
-}
-
-export function base64ToUint8Array(base64: string): Uint8Array {
-  const cleanBase64 = base64.includes(',') ? base64.split(',')[1] : base64;
-  const binaryString = atob(cleanBase64);
-  const len = binaryString.length;
-  const bytes = new Uint8Array(len);
-  for (let i = 0; i < len; i++) {
-    bytes[i] = binaryString.charCodeAt(i);
-  }
-  return bytes;
-}
-
-export async function readBinaryFromUri(localUri: string, base64?: string | null): Promise<Uint8Array> {
-  if (base64) {
-    return base64ToUint8Array(base64);
-  }
-
-  const response = await fetch(localUri);
-  const blob = await response.blob();
-  const arrayBuffer = await blob.arrayBuffer();
-  return new Uint8Array(arrayBuffer);
 }
 
 export interface PendingCleanupItem {

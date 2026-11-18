@@ -9,6 +9,8 @@
  * - Paleta Serie AX clara: pergamino (#FAF5EE), marfil (#FFFDF9), tinta (#4A2E18),
  *   terracota (#9C3E1B), borgoña (#7D2935) y dorado ocre (#D4AF37).
  */
+import { useEffect, useRef } from 'react';
+
 import {
   Alert,
   Linking,
@@ -25,6 +27,11 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors, Fonts } from '@/constants/theme';
 import { TocapuStrip, WizardButton, WizardTopBar } from '@/features/wizard/components/wizard-ui';
 import { usePlans } from '@/features/plans/context/plans-context';
+import { useNearbyStop } from '@/features/plans/hooks/use-nearby-stop';
+import {
+  notifyNearbyStop,
+  scheduleStopReminder,
+} from '@/features/plans/services/notifications.service';
 import {
   buildMapsNavigationUrl,
   formatStopArrivalLabel,
@@ -45,6 +52,46 @@ export default function PlanActivoScreen() {
     completarPlan,
     abandonarPlan,
   } = usePlans();
+
+  // Sensores: mientras la expedición está abierta se sigue la ubicación para
+  // avisar cuando el explorador llega a la siguiente parada.
+  const cercana = useNearbyStop({
+    paradas: planActivo?.paradas ?? [],
+    visitadas,
+    habilitado: Boolean(planActivo),
+  });
+  const ultimaParadaAvisada = useRef<number | null>(null);
+  const recordatorioProgramadoPara = useRef<string | null>(null);
+
+  // Recordatorio: se programa para la siguiente parada pendiente y se vuelve a
+  // programar cuando esa parada cambia (al marcar una visitada, por ejemplo).
+  const siguientePendiente = planActivo?.paradas.find(
+    (parada) => !visitadas.includes(parada.orden),
+  );
+
+  useEffect(() => {
+    if (!siguientePendiente) {
+      return;
+    }
+
+    const clave = `${siguientePendiente.orden}-${siguientePendiente.llegada}`;
+    if (recordatorioProgramadoPara.current === clave) {
+      return;
+    }
+
+    recordatorioProgramadoPara.current = clave;
+    void scheduleStopReminder(siguientePendiente.place.nombre, siguientePendiente.llegada);
+  }, [siguientePendiente]);
+
+  useEffect(() => {
+    const parada = cercana.parada;
+    if (!parada || ultimaParadaAvisada.current === parada.orden) {
+      return;
+    }
+
+    ultimaParadaAvisada.current = parada.orden;
+    void notifyNearbyStop(parada.place.nombre, cercana.metros ?? 0);
+  }, [cercana.parada, cercana.metros]);
 
   if (!planActivo) {
     return (
@@ -75,6 +122,9 @@ export default function PlanActivoScreen() {
 
   const total = planActivo.paradas.length;
   const pct = total > 0 ? Math.round((visitadas.length / total) * 100) : 0;
+  const paradaCercana = cercana.parada;
+  const metrosHastaCercana =
+    cercana.metros !== null ? Math.max(10, Math.round(cercana.metros / 10) * 10) : null;
 
   const finalizar = async () => {
     await completarPlan();
@@ -183,6 +233,33 @@ export default function PlanActivoScreen() {
             </View>
           </View>
         </View>
+
+        {/* Aviso de cercanía: lo dispara el GPS cuando el explorador llega a la parada */}
+        {paradaCercana ? (
+          <View
+            style={[
+              styles.nearbyNotice,
+              { backgroundColor: 'rgba(212, 175, 55, 0.16)', borderColor: palette.accent },
+            ]}
+          >
+            <Text style={[styles.nearbyTitle, { color: palette.brand }]}>
+              📍 {paradaCercana.place.nombre.toUpperCase()}
+            </Text>
+            <Text style={[styles.nearbyText, { color: palette.textSecondary }]}>
+              {metrosHastaCercana !== null && metrosHastaCercana <= 30
+                ? 'El GPS te ubica en el punto. Marca la parada para seguir con el recorrido.'
+                : `El GPS te ubica a unos ${metrosHastaCercana ?? 0} m. Marca la parada cuando llegues.`}
+            </Text>
+            <TouchableOpacity
+              style={[styles.nearbyButton, { backgroundColor: palette.primary }]}
+              onPress={() => marcarParada(paradaCercana.orden)}
+              accessibilityRole="button"
+              accessibilityLabel={`Marcar ${paradaCercana.place.nombre} como visitada`}
+            >
+              <Text style={styles.nearbyButtonText}>MARCAR COMO VISITADA</Text>
+            </TouchableOpacity>
+          </View>
+        ) : null}
 
         {/* Explicación si el plan contiene una sola parada */}
         {total === 1 ? (
@@ -503,6 +580,38 @@ const styles = StyleSheet.create({
   progressFill: {
     height: '100%',
     borderRadius: 3,
+  },
+  nearbyNotice: {
+    marginHorizontal: 20,
+    marginTop: 12,
+    padding: 12,
+    borderWidth: 1.5,
+    borderRadius: 6,
+    gap: 6,
+  },
+  nearbyTitle: {
+    fontFamily: Fonts.mono,
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 0.8,
+  },
+  nearbyText: {
+    fontFamily: Fonts.sans,
+    fontSize: 11.5,
+    lineHeight: 16,
+  },
+  nearbyButton: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 4,
+  },
+  nearbyButtonText: {
+    fontFamily: Fonts.mono,
+    fontSize: 10,
+    fontWeight: '700',
+    letterSpacing: 1,
+    color: '#FFFDF9',
   },
   singleStopNotice: {
     marginHorizontal: 20,

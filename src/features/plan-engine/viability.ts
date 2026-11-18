@@ -32,6 +32,9 @@ export const VELOCIDADES_KMH: Record<MobilityMode, number> = {
 
 export const TIEMPO_MINIMO_TRASLADO_MIN = 5;
 
+/** Duracion de visita asumida cuando el lugar no declara una sugerida. */
+export const DURACION_POR_DEFECTO_MIN = 30;
+
 /** Mapeo oficial de intereses del Wizard hacia nombres de categorías de la BD. */
 export const MAPA_INTERESES_CATEGORIAS: Record<string, string[]> = {
   'Gastronomía': ['Gastronomía'],

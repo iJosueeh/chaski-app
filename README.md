@@ -13,7 +13,7 @@
   <a href="https://img.shields.io/badge/React_Native-0.86.3-61DAEB?style=flat-square"><img src="https://img.shields.io/badge/React_Native-0.86.3-61DAEB?style=flat-square" alt="React Native 0.86.3" /></a>
   <a href="https://img.shields.io/badge/TypeScript-6.0-3178C6?style=flat-square"><img src="https://img.shields.io/badge/TypeScript-6.0-3178C6?style=flat-square" alt="TypeScript 6" /></a>
   <a href="https://img.shields.io/badge/Supabase-2.115-3ECF8E?style=flat-square"><img src="https://img.shields.io/badge/Supabase-2.115-3ECF8E?style=flat-square" alt="Supabase" /></a>
-  <a href="#calidad"><img src="https://img.shields.io/badge/tests-752%20passing-brightgreen?style=flat-square" alt="752 tests passing" /></a>
+  <a href="#calidad"><img src="https://img.shields.io/badge/tests-787%20passing-brightgreen?style=flat-square" alt="787 tests passing" /></a>
   <a href="./LICENSE"><img src="https://img.shields.io/badge/licencia-MIT-blue?style=flat-square" alt="MIT" /></a>
 </p>
 
@@ -61,7 +61,7 @@ Estudiantes, jóvenes profesionales, parejas y familias que quieren sacarle prov
 
 **🧭 Planifica**
 - Asistente de 5 pasos: ubicación, tiempo, presupuesto, intereses y movilidad.
-- Motor de planes con **Beam Search** y scoring con diversidad (Jaccard) — hasta 3 variantes: íntima, equilibrada y exploradora.
+- Motor de planes con **Beam Search**, scoring con diversidad (Jaccard) y reordenamiento de paradas por proximidad geográfica — hasta 3 variantes: íntima, equilibrada y exploradora.
 - Registro de la solicitud en Supabase con deduplicación e idempotencia.
 
 **🎫 Vive el recorrido**
@@ -76,7 +76,10 @@ Estudiantes, jóvenes profesionales, parejas y familias que quieren sacarle prov
 
 **🛡️ Administra** (Panel de Intendencia)
 - Padrón de exploradores con métricas, búsqueda y filtros por rol/estado.
-- Activación y suspensión de cuentas con protecciones server-side (RLS + RPC).
+- Edición de datos y rol de cada cuenta, con validación en cliente y en base de datos.
+- Baja de cuentas por anonimización (el historial se conserva; no se borra la fila).
+- Gestión de planes y expediciones: listado con búsqueda, detalle del recorrido y eliminación con confirmación.
+- Protecciones server-side en todas las operaciones (RLS + RPC `SECURITY DEFINER`): no puedes quitarte tu propio rol, desactivar tu cuenta ni dejar el sistema sin administradores.
 
 ---
 
@@ -136,7 +139,7 @@ src/
 └── lib/supabase.ts       # cliente Supabase (único punto de acceso)
 
 supabase/
-├── migrations/           # esquema versionado (6 migraciones)
+├── migrations/           # esquema versionado (8 migraciones)
 └── tests/                # verificaciones SQL
 docs/                     # centro de documentación técnica
 ```
@@ -176,7 +179,7 @@ npm start
 - **Emulador:** `npm run android` o `npm run ios`.
 - **Dispositivo físico:** escanea el QR con Expo Go (misma red Wi-Fi). Si la red es hostil, usa túnel: `npm start -- --tunnel`.
 - **Bundle viejo o sospecha de caché:** `npm start -- --clear`.
-- **Base de datos:** ejecuta las migraciones de `supabase/migrations/` en tu proyecto Supabase (en orden cronológico). La más reciente (`20261015103000_expediciones_plan.sql`) habilita el historial de expediciones.
+- **Base de datos:** ejecuta las migraciones de `supabase/migrations/` en tu proyecto Supabase (en orden cronológico). Empieza por `00000000000000_base_schema.sql` si tu proyecto está vacío: crea las tablas base de las que dependen las demás. La migración `20261109120000_admin_crud.sql` añade las RPC de edición, baja y gestión de planes del panel administrativo.
 
 > En Expo Go, los mapas usan una capa raster de OpenStreetMap sin API key. La key de Google Maps solo es necesaria en un Development Build propio (ver `.env.template`).
 
@@ -188,7 +191,7 @@ npm start
 |---|---|
 | `npm run lint` | ESLint — debe terminar sin errores |
 | `npx tsc --noEmit` | Chequeo de tipos estricto |
-| `npm test` | Suite Vitest completa — **752 pruebas en verde** |
+| `npm test` | Suite Vitest completa — **787 pruebas en verde** |
 | `npm run test:watch` | Vitest en modo watch durante el desarrollo |
 
 Convenciones: identificadores en inglés, textos visibles en español, exportes explícitos en barrels y tests por feature bajo `__tests__/`.

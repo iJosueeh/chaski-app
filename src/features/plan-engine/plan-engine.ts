@@ -11,6 +11,7 @@ import {
 import {
   calculateHaversineDistanceKm,
   dateToChaskiDayOfWeek,
+  DURACION_POR_DEFECTO_MIN,
   estimateTravelTimeMinutes,
   isBudgetViable,
   isPlaceAlreadyVisited,
@@ -20,6 +21,7 @@ import {
   minutesToHHMM,
   parseHHMMToMinutes,
 } from "./viability";
+import { optimizarOrdenParadas } from "./route-order";
 
 export type { PlanStrategy };
 export { PESOS_SCORING, calculateMultiCriteriaScore };
@@ -185,7 +187,7 @@ function ejecutarGreedy(ctx: PlanEngineContext): GeneratedPlan[] {
 
     const cabe = (o: { l: Place; km: number }) => {
       const tAncla = estimateTravelTimeMinutes(o.km, request.movilidad);
-      const durLugar = o.l.duracion_sugerida_min ?? 30;
+      const durLugar = o.l.duracion_sugerida_min ?? DURACION_POR_DEFECTO_MIN;
       const costoLugar = o.l.gasto_max ?? 0;
 
       if (!isBudgetViable(0, costoLugar, presupuestoV)) return false;
@@ -213,7 +215,7 @@ function ejecutarGreedy(ctx: PlanEngineContext): GeneratedPlan[] {
             : viables.length - 1;
       const a = viables[idx];
       const tAncla = estimateTravelTimeMinutes(a.km, request.movilidad);
-      const durLugar = a.l.duracion_sugerida_min ?? 30;
+      const durLugar = a.l.duracion_sugerida_min ?? DURACION_POR_DEFECTO_MIN;
       const costoLugar = a.l.gasto_max ?? 0;
 
       const llegadaAbs = startMinutes + tAncla;
@@ -261,7 +263,7 @@ function ejecutarGreedy(ctx: PlanEngineContext): GeneratedPlan[] {
         const costoLugar = l.gasto_max ?? 0;
         if (!isBudgetViable(costoAcum, costoLugar, presupuestoV)) continue;
 
-        const durLugar = l.duracion_sugerida_min ?? 30;
+        const durLugar = l.duracion_sugerida_min ?? DURACION_POR_DEFECTO_MIN;
         if (!isTimeViable(tiempoAcum, t, durLugar, minutosV)) continue;
 
         const llegadaAbs = startMinutes + tiempoAcum + t;
@@ -328,15 +330,30 @@ function ejecutarGreedy(ctx: PlanEngineContext): GeneratedPlan[] {
       };
     }
 
+    // Fase 2.1: reordena geográficamente las paradas (mantiene fija el ancla).
+    // Si no hay una permutación factible que ahorre al menos 50 m, el motor
+    // conserva exactamente su orden y sus acumulados originales.
+    const reorden = optimizarOrdenParadas(paradas, {
+      origen,
+      movilidad: request.movilidad,
+      startMinutes,
+      diaSemanaInicial,
+    });
+    const paradasFinales = reorden.reordenado ? reorden.paradas : paradas;
+    const duracionFinalMin = reorden.reordenado
+      ? reorden.duracionTotalMin
+      : tiempoAcum;
+    const distanciaFinalKm = reorden.reordenado ? reorden.distanciaKm : distAcum;
+
     return {
       id: `${v.id}-${Date.now()}`,
       titulo: v.titulo,
-      descripcion: `${paradas.length} ${paradas.length === 1 ? "parada" : "paradas"} desde ${paradas[0].place.nombre}`,
+      descripcion: `${paradasFinales.length} ${paradasFinales.length === 1 ? "parada" : "paradas"} desde ${paradasFinales[0].place.nombre}`,
       variante: v.id,
-      paradas,
-      duracion_total_min: tiempoAcum,
+      paradas: paradasFinales,
+      duracion_total_min: duracionFinalMin,
       costo_total: costoAcum,
-      distancia_km_aprox: Math.round(distAcum * 10) / 10,
+      distancia_km_aprox: Math.round(distanciaFinalKm * 10) / 10,
     };
   });
 
@@ -384,7 +401,7 @@ function ejecutarBeamSearch(ctx: BeamSearchContext): GeneratedPlan[] {
 
     const cabeAncla = (o: { l: Place; km: number }) => {
       const tAncla = estimateTravelTimeMinutes(o.km, request.movilidad);
-      const durLugar = o.l.duracion_sugerida_min ?? 30;
+      const durLugar = o.l.duracion_sugerida_min ?? DURACION_POR_DEFECTO_MIN;
       const costoLugar = o.l.gasto_max ?? 0;
 
       if (!isBudgetViable(0, costoLugar, presupuestoV)) return false;
@@ -424,7 +441,7 @@ function ejecutarBeamSearch(ctx: BeamSearchContext): GeneratedPlan[] {
 
     let currentBeam: BeamState[] = semillas.map((a) => {
       const tAncla = estimateTravelTimeMinutes(a.km, request.movilidad);
-      const durLugar = a.l.duracion_sugerida_min ?? 30;
+      const durLugar = a.l.duracion_sugerida_min ?? DURACION_POR_DEFECTO_MIN;
       const costoLugar = a.l.gasto_max ?? 0;
 
       const llegadaAbs = startMinutes + tAncla;
@@ -488,7 +505,7 @@ function ejecutarBeamSearch(ctx: BeamSearchContext): GeneratedPlan[] {
           if (!isBudgetViable(state.costoAcum, costoLugar, presupuestoV))
             continue;
 
-          const durLugar = l.duracion_sugerida_min ?? 30;
+          const durLugar = l.duracion_sugerida_min ?? DURACION_POR_DEFECTO_MIN;
           if (!isTimeViable(state.tiempoAcum, t, durLugar, minutosV)) continue;
 
           const llegadaAbs = startMinutes + state.tiempoAcum + t;
@@ -576,15 +593,34 @@ function ejecutarBeamSearch(ctx: BeamSearchContext): GeneratedPlan[] {
       }
     }
 
+    // Fase 2.1: mismo reordenamiento geográfico que en el camino voraz.
+    // El `score` mostrado se conserva tal como lo calculó la búsqueda: cambiar
+    // su orden de paradas no debe alterar el criterio con el que se eligió.
+    const reorden = optimizarOrdenParadas(bestState.paradas, {
+      origen,
+      movilidad: request.movilidad,
+      startMinutes,
+      diaSemanaInicial,
+    });
+    const paradasFinales = reorden.reordenado
+      ? reorden.paradas
+      : bestState.paradas;
+    const duracionFinalMin = reorden.reordenado
+      ? reorden.duracionTotalMin
+      : bestState.tiempoAcum;
+    const distanciaFinalKm = reorden.reordenado
+      ? reorden.distanciaKm
+      : bestState.distAcum;
+
     const plan: GeneratedPlan = {
       id: `${v.id}-${Date.now()}`,
       titulo: v.titulo,
-      descripcion: `${bestState.paradas.length} ${bestState.paradas.length === 1 ? "parada" : "paradas"} desde ${bestState.paradas[0].place.nombre}`,
+      descripcion: `${paradasFinales.length} ${paradasFinales.length === 1 ? "parada" : "paradas"} desde ${paradasFinales[0].place.nombre}`,
       variante: v.id,
-      paradas: bestState.paradas,
-      duracion_total_min: bestState.tiempoAcum,
+      paradas: paradasFinales,
+      duracion_total_min: duracionFinalMin,
       costo_total: bestState.costoAcum,
-      distancia_km_aprox: Math.round(bestState.distAcum * 10) / 10,
+      distancia_km_aprox: Math.round(distanciaFinalKm * 10) / 10,
       score: bestState.score,
       scoreBreakdown: bestState.scoreBreakdown,
     };

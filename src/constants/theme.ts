@@ -37,6 +37,7 @@ export const Colors = {
     border: '#E2D7C3',          // Borde sutil (grecas)
     shadow: 'rgba(74, 46, 24, 0.08)',
     shadowStrong: 'rgba(74, 46, 24, 0.16)',
+    overlay: 'rgba(74, 46, 24, 0.60)',      // Velo de modales (fondo oscurecido)
   },
   dark: {
     text: '#F5EFE4',
@@ -56,6 +57,7 @@ export const Colors = {
     border: '#3A2E22',
     shadow: 'rgba(0, 0, 0, 0.3)',
     shadowStrong: 'rgba(0, 0, 0, 0.5)',
+    overlay: 'rgba(0, 0, 0, 0.60)',          // Velo de modales (fondo oscurecido)
   },
 } as const;
 

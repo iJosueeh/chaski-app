@@ -1,6 +1,7 @@
 import { useCallback, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   Pressable,
   StyleSheet,
   Text,
@@ -67,9 +68,64 @@ export function ProfileIdentityCard({
     setSuccessMessage(null);
   }, [currentName]);
 
-  const handlePickAvatar = async () => {
-    if (!onUpdateAvatar) return;
+  const subirAvatar = useCallback(
+    async (asset: ImagePicker.ImagePickerAsset) => {
+      if (!onUpdateAvatar || !asset.uri) {
+        return;
+      }
 
+      setAvatarLoading(true);
+      setImageLoadError(false);
+      setErrorMessage(null);
+      setSuccessMessage(null);
+
+      try {
+        const res = await onUpdateAvatar(asset.uri, asset.base64);
+        if (res.success) {
+          setImageLoadError(false);
+          setSuccessMessage('Fotografía de perfil actualizada con éxito.');
+        } else {
+          setErrorMessage(res.error ?? 'No se pudo actualizar la fotografía.');
+        }
+      } catch {
+        setErrorMessage('Ocurrió un error al subir la imagen.');
+      } finally {
+        setAvatarLoading(false);
+      }
+    },
+    [onUpdateAvatar],
+  );
+
+  /** Toma la foto con la cámara del dispositivo. Pide permiso solo al usarla. */
+  const handleTakePhoto = useCallback(async () => {
+    try {
+      const permiso = await ImagePicker.requestCameraPermissionsAsync();
+      if (!permiso.granted) {
+        setErrorMessage(
+          'Sin permiso de cámara no se puede tomar la foto. Puedes elegir una de tu galería.',
+        );
+        return;
+      }
+
+      const result = await ImagePicker.launchCameraAsync({
+        mediaTypes: ['images'],
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+        base64: true,
+      });
+
+      if (result.canceled || !result.assets[0]) {
+        return;
+      }
+
+      await subirAvatar(result.assets[0]);
+    } catch {
+      setErrorMessage('Ocurrió un error al abrir la cámara.');
+    }
+  }, [subirAvatar]);
+
+  const handlePickFromGallery = useCallback(async () => {
     try {
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ['images'],
@@ -79,29 +135,25 @@ export function ProfileIdentityCard({
         base64: true,
       });
 
-      if (result.canceled || !result.assets[0]?.uri) {
+      if (result.canceled || !result.assets[0]) {
         return;
       }
 
-      setAvatarLoading(true);
-      setImageLoadError(false);
-      setErrorMessage(null);
-      setSuccessMessage(null);
-
-      const asset = result.assets[0];
-      const res = await onUpdateAvatar(asset.uri, asset.base64);
-      if (res.success) {
-        setImageLoadError(false);
-        setSuccessMessage('Fotografía de perfil actualizada con éxito.');
-      } else {
-        setErrorMessage(res.error ?? 'No se pudo actualizar la fotografía.');
-      }
+      await subirAvatar(result.assets[0]);
     } catch {
       setErrorMessage('Ocurrió un error al seleccionar la imagen.');
-    } finally {
-      setAvatarLoading(false);
     }
-  };
+  }, [subirAvatar]);
+
+  const handlePickAvatar = useCallback(() => {
+    if (!onUpdateAvatar) return;
+
+    Alert.alert('Fotografía de perfil', '¿Cómo quieres tomarla?', [
+      { text: 'Tomar foto', onPress: () => void handleTakePhoto() },
+      { text: 'Elegir de galería', onPress: () => void handlePickFromGallery() },
+      { text: 'Cancelar', style: 'cancel' },
+    ]);
+  }, [handlePickFromGallery, handleTakePhoto, onUpdateAvatar]);
 
   const handleRemoveAvatar = async () => {
     if (!onRemoveAvatar) return;

@@ -8,6 +8,7 @@ import {
   PESOS_SCORING,
 } from '../scoring';
 import { generarPlanes, type PlanStop } from '../plan-engine';
+import { DURACION_POR_DEFECTO_MIN } from '../viability';
 import type { Place } from '@/features/places/interface/places.interface';
 import type { WizardPlanRequest } from '@/features/wizard/context/wizard-context';
 
@@ -41,7 +42,7 @@ function createMockStop(place: Place, overrides: Partial<PlanStop> = {}): PlanSt
     place,
     orden: 1,
     llegada: '09:00',
-    duracion_min: place.duracion_sugerida_min ?? 30,
+    duracion_min: place.duracion_sugerida_min ?? DURACION_POR_DEFECTO_MIN,
     traslado_desde_anterior_min: 10,
     costo_estimado: place.gasto_max ?? 0,
     ...overrides,

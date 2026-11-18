@@ -1,59 +1,28 @@
 import { supabase } from "@/lib/supabase";
+import { readBinaryFromUri } from "@/shared/utils/image-bytes";
+import {
+  PLACES_BUCKET,
+  generatePlaceStoragePath,
+  validatePlaceImageBytes,
+} from "../utils/place-image";
 
-export const PLACES_BUCKET = "places";
-export const MAX_PLACE_IMAGE_SIZE_BYTES = 5 * 1024 * 1024; // 5 MB
-export const ALLOWED_PLACE_IMAGE_MIMES = [
-  "image/jpeg",
-  "image/png",
-  "image/webp",
-] as const;
+// Se reexportan porque ya formaban parte de la API de este modulo; la logica
+// pura vive en features/places/utils/place-image.ts.
+export {
+  ALLOWED_PLACE_IMAGE_MIMES,
+  MAX_PLACE_IMAGE_SIZE_BYTES,
+  PLACES_BUCKET,
+  detectPlaceImageFormat,
+  generatePlaceStoragePath,
+  isValidPlaceStoragePath,
+  validatePlaceImageBytes,
+} from "../utils/place-image";
+export type {
+  PlaceImageFormatInfo,
+  PlaceImageMimeType,
+  PlaceImageValidation,
+} from "../utils/place-image";
 
-export type PlaceImageMimeType = (typeof ALLOWED_PLACE_IMAGE_MIMES)[number];
-
-export interface PlaceImageFormatInfo {
-  mime: PlaceImageMimeType;
-  ext: "jpg" | "png" | "webp";
-}
-
-export function detectPlaceImageFormat(
-  bytes: Uint8Array,
-): PlaceImageFormatInfo | null {
-  if (!bytes || bytes.length < 12) {
-    return null;
-  }
-
-  if (bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) {
-    return { mime: "image/jpeg", ext: "jpg" };
-  }
-
-  if (
-    bytes[0] === 0x89 &&
-    bytes[1] === 0x50 &&
-    bytes[2] === 0x4e &&
-    bytes[3] === 0x47 &&
-    bytes[4] === 0x0d &&
-    bytes[5] === 0x0a &&
-    bytes[6] === 0x1a &&
-    bytes[7] === 0x0a
-  ) {
-    return { mime: "image/png", ext: "png" };
-  }
-
-  if (
-    bytes[0] === 0x52 &&
-    bytes[1] === 0x49 &&
-    bytes[2] === 0x46 &&
-    bytes[3] === 0x46 &&
-    bytes[8] === 0x57 &&
-    bytes[9] === 0x45 &&
-    bytes[10] === 0x42 &&
-    bytes[11] === 0x50
-  ) {
-    return { mime: "image/webp", ext: "webp" };
-  }
-
-  return null;
-}
 
 export function getPlaceImageUrl(
   storagePath: string | null | undefined,
@@ -72,35 +41,6 @@ export function getPlaceImageUrl(
   return data?.publicUrl ?? null;
 }
 
-export function isValidPlaceStoragePath(
-  storagePath: string,
-  lugarId?: string,
-): boolean {
-  if (!storagePath || typeof storagePath !== "string") return false;
-
-  const regex = /^[0-9a-fA-F-]{36}\/[0-9a-fA-F-]{36}\.(jpg|jpeg|png|webp)$/;
-  if (!regex.test(storagePath)) return false;
-
-  if (lugarId) {
-    return storagePath.toLowerCase().startsWith(`${lugarId.toLowerCase()}/`);
-  }
-
-  return true;
-}
-
-export function generatePlaceStoragePath(
-  lugarId: string,
-  extension: "jpg" | "png" | "webp",
-): string {
-  const fileUuid = crypto.randomUUID
-    ? crypto.randomUUID()
-    : "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
-        const r = (Math.random() * 16) | 0;
-        const v = c === "x" ? r : (r & 0x3) | 0x8;
-        return v.toString(16);
-      });
-  return `${lugarId}/${fileUuid}.${extension}`;
-}
 
 export async function adminSetLugarPortada(
   lugarId: string,
@@ -248,6 +188,71 @@ export async function adminProcessPendingCleanups(
     return {
       processedCount: 0,
       errors: [e instanceof Error ? e.message : "Error inesperado"],
+    };
+  }
+}
+
+export interface UploadPlaceImageParams {
+  lugarId: string;
+  localUri: string;
+  base64?: string | null;
+}
+
+export interface UploadPlaceImageResult {
+  success: boolean;
+  imagenId?: string;
+  storagePath?: string;
+  publicUrl?: string | null;
+  error?: string;
+}
+
+/**
+ * Sube una foto al bucket `places` y registra la fila en `lugares_imagenes`.
+ * Si la fila no se puede crear, se borra el archivo para no dejar huérfanos.
+ */
+export async function uploadPlaceImage({
+  lugarId,
+  localUri,
+  base64,
+}: UploadPlaceImageParams): Promise<UploadPlaceImageResult> {
+  try {
+    const bytes = await readBinaryFromUri(localUri, base64);
+    const { format, error } = validatePlaceImageBytes(bytes);
+
+    if (!format) {
+      return { success: false, error: error ?? "Imagen no válida" };
+    }
+
+    const storagePath = generatePlaceStoragePath(lugarId, format.ext);
+    const { error: uploadError } = await supabase.storage
+      .from(PLACES_BUCKET)
+      .upload(storagePath, bytes, { contentType: format.mime, upsert: false });
+
+    if (uploadError) {
+      return { success: false, error: `Error al subir la imagen: ${uploadError.message}` };
+    }
+
+    const { data: inserted, error: insertError } = await supabase
+      .from("lugares_imagenes")
+      .insert({ lugar_id: lugarId, storage_path: storagePath, es_portada: false })
+      .select("id")
+      .single();
+
+    if (insertError) {
+      await supabase.storage.from(PLACES_BUCKET).remove([storagePath]);
+      return { success: false, error: `No se registró la imagen: ${insertError.message}` };
+    }
+
+    return {
+      success: true,
+      imagenId: inserted?.id as string | undefined,
+      storagePath,
+      publicUrl: getPlaceImageUrl(storagePath),
+    };
+  } catch (err) {
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : "Error al procesar la imagen",
     };
   }
 }

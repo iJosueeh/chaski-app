@@ -4,3 +4,4 @@ export { AdminMetricsCard } from './admin-metrics-card';
 export { AdminFilters } from './admin-filters';
 export { AdminUserCard } from './admin-user-card';
 export { AdminUserDetailModal } from './admin-user-detail-modal';
+export { AdminUserEditModal } from './admin-user-edit-modal';
