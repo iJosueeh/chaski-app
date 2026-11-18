@@ -488,7 +488,55 @@ flowchart TB
 
 ---
 
-## 19. Documentos relacionados
+## 19. Reordenamiento geográfico de las paradas
+
+El Beam Search elige **qué** destinos entran en el plan y en qué secuencia los fue construyendo. Esa secuencia respeta horarios y presupuesto, pero no evalúa explícitamente la distancia entre paradas consecutivas, así que puede dejar recorridos que van y vuelven sobre la misma zona.
+
+Para corregirlo, una vez que un plan queda armado se aplica un paso de mejora sobre el orden de sus paradas.
+
+### 19.1. Reglas de la mejora
+
+| Regla | Motivo |
+|---|---|
+| La primera parada nunca se mueve | Es el ancla del recorrido: de ella depende la hora de salida y el traslado desde el punto de inicio |
+| Solo se permutan las paradas siguientes | Con hasta 4 paradas se prueban todas las combinaciones (24 como máximo) |
+| El nuevo orden debe ser factible | Se revalida que cada parada siga abriendo al llegar y que el plan no exceda la ventana horaria ni el presupuesto |
+| Solo se acepta si reduce el desplazamiento | Se exige una mejora mínima; si no la hay, se conserva el orden original |
+| El resultado es determinista | Ante distancias iguales siempre se elige el mismo orden, para que dos ejecuciones idénticas den el mismo plan |
+| El costo del plan no cambia | El reorden no agrega ni quita paradas: solo cambia el orden de visita |
+
+### 19.2. Distancias antes y después
+
+Medición con datos reales del catálogo, comparando el recorrido generado contra el orden óptimo calculado a mano:
+
+| Alternativa | Distancia antes | Distancia después | Mejora |
+|---|---|---|---|
+| Plan Equilibrado (4 paradas) | 8.31 km | 5.04 km de recorrido interno | El zigzag Miraflores–Barranco desaparece |
+| Ruta Exploradora (5 paradas) | 10.07 km | 5.14 km de recorrido interno | Se deja de cruzar la misma zona dos veces |
+
+En la aplicación, el total que ve el usuario incluye además el traslado desde su ubicación hasta la primera parada, por eso el número final es mayor que el recorrido interno.
+
+### 19.3. Escenarios de verificación
+
+Las pruebas del motor incluyen escenarios completos con lugares reales de Miraflores y Barranco:
+
+| Escenario | Condición | Qué se verifica |
+|---|---|---|
+| A | 4 horas, S/ 50, sin intereses | Se generan planes, cada uno con paradas, sin exceder tiempo ni presupuesto |
+| A' | Igual que A | Ninguna variante repite el mismo recorrido en el mismo orden |
+| B | 8 horas, S/ 120, interés en gastronomía | Al menos un plan incluye un destino de esa categoría |
+| C | 2 horas, S/ 20 | Ningún plan se sale de los dos límites |
+| D | 8 horas, S/ 120 | Las paradas quedan ordenadas y la primera conserva su posición |
+
+Estos escenarios se ejecutan junto con el resto de la suite (`npm test`). Además, `route-order.test.ts` comprueba con coordenadas reales de Huaca Pucllana, Canta Rana, Museo Amano y el MAC que el orden resultante sea más corto que el zigzag de partida.
+
+### 19.4. Limitación conocida
+
+Dos alternativas distintas pueden compartir exactamente los mismos destinos en distinto orden, porque la selección se descarta solo cuando el recorrido es idéntico. Descartar también los casos con alta similitud de conjunto (índice de Jaccard) queda como mejora pendiente.
+
+---
+
+## 21. Documentos relacionados
 
 | Documento | Descripción |
 |---|---|

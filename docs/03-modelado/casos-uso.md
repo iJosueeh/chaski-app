@@ -39,6 +39,10 @@ graph TB
         CU07["CU07: Gestionar lugares"]
         CU08["CU08: Gestionar categorías y etiquetas"]
         CU09["CU09: Consultar reportes"]
+        CU10["CU10: Administrar usuarios"]
+        CU11["CU11: Supervisar planes y expediciones"]
+        CU12["CU12: Administrar fotografías de destinos"]
+        CU13["CU13: Auditar las acciones de intendencia"]
     end
 
     USUARIO --> CU01
@@ -51,6 +55,10 @@ graph TB
     ADMIN --> CU07
     ADMIN --> CU08
     ADMIN --> CU09
+    ADMIN --> CU10
+    ADMIN --> CU11
+    ADMIN --> CU12
+    ADMIN --> CU13
 
     style USUARIO fill:#bbdefb,stroke:#1976d2
     style ADMIN fill:#c8e6c9,stroke:#388e3c
@@ -69,6 +77,10 @@ graph TB
 | CU07 | Gestionar lugares | Administrador | CRUD de lugares del catálogo |
 | CU08 | Gestionar categorías y etiquetas | Administrador | Administrartaxonomía del catálogo |
 | CU09 | Consultar reportes | Administrador | Ver estadísticas del sistema |
+| CU10 | Administrar usuarios | Administrador | Consultar el padrón, editar datos y rol, dar de baja con anonimización |
+| CU11 | Supervisar planes y expediciones | Administrador | Revisar y eliminar solicitudes y expediciones de todos los usuarios |
+| CU12 | Administrar fotografías de destinos | Administrador | Subir fotos desde cámara o galería, marcar portada y eliminar |
+| CU13 | Auditar las acciones de intendencia | Administrador | Historial automático de cambios administrativos y métricas de uso |
 
 ---
 
@@ -364,6 +376,59 @@ flowchart TB
 
 ---
 
+## 10.1. CU10 — CU13 — Casos del panel de intendencia
+
+Estos casos corresponden a la administración institucional: quién puede ver y modificar la información de todas las cuentas. Se apoyan en la regla de negocio de que solo una cuenta con rol `ADMIN` y estado activo puede ejecutarlos, y esa verificación ocurre en la base de datos, no en la aplicación.
+
+```mermaid
+flowchart TB
+    subgraph CU10["CU10: Administrar usuarios"]
+        D1[Abrir padrón] --> D2[Buscar o filtrar]
+        D2 --> D3[Elegir cuenta]
+        D3 --> D4{Acción}
+        D4 -->|Editar| D5[Cambiar nombre o rol]
+        D4 -->|Baja| D6[Confirmar anonimización]
+        D5 --> D7[Guardar cambios]
+        D6 --> D7
+    end
+
+    subgraph CU11["CU11: Supervisar planes y expediciones"]
+        E1[Elegir pestaña] --> E2[Solicitudes o expediciones]
+        E2 --> E3[Buscar por usuario]
+        E3 --> E4[Eliminar registro]
+        E4 --> E5[Confirmar]
+    end
+
+    subgraph CU12["CU12: Administrar fotografías"]
+        F1[Elegir destino] --> F2{Cámara o galería}
+        F2 --> F3[Validar formato y tamaño]
+        F3 --> F4[Subir y registrar]
+        F4 --> F5[Marcar portada o eliminar]
+    end
+
+    subgraph CU13["CU13: Auditar acciones"]
+        G1[Abrir auditoría] --> G2[Métricas de uso]
+        G2 --> G3[Historial paginado]
+        G3 --> G4[Identificar autor y cambio]
+    end
+
+    style D7 fill:#c8e6c9
+    style E5 fill:#c8e6c9
+    style F5 fill:#c8e6c9
+    style G4 fill:#c8e6c9
+```
+
+| Caso de uso | Actor | Resultado esperado |
+|---|---|---|
+| CU10 | Administrador | La cuenta queda con el nombre, rol y estado indicados, o anonimizada y sin acceso |
+| CU11 | Administrador | La solicitud o la expedición deja de existir, junto con sus registros dependientes |
+| CU12 | Administrador | La fotografía queda almacenada y asociada al destino, o eliminada del almacenamiento |
+| CU13 | Administrador | Se conoce qué hizo cada administrador y cómo se está usando la aplicación |
+
+La auditoría de CU13 se llena por disparadores de la base de datos: cuando un administrador modifica una cuenta o elimina un plan, el registro aparece sin que la aplicación tenga que escribirlo. Esto garantiza que un cambio no pueda quedar sin rastro aunque se ejecute por otra vía.
+
+---
+
 ## 11. Tabla resumen de estados
 
 | Entidad | Estados posibles |
@@ -379,12 +444,16 @@ flowchart TB
 
 | CU | Requisitos | Reglas de negocio |
 |---|---|---|
-| CU01 | RF01, RF02, RF03 | USR-01 a USR-04 |
+| CU01 | RF01, RF02, RF03, RF32 | USR-01 a USR-04 |
 | CU02 | RF04, RF05 | SOL-01 a SOL-08 |
-| CU03 | RF06, RF07, RF08 | LUG-01 a LUG-05, GEN-01 a GEN-10 |
+| CU03 | RF06, RF07, RF08, RF33 | LUG-01 a LUG-05, GEN-01 a GEN-10 |
 | CU04 | RF09, RF10, RF11, RF12 | PLA-01, PLA-02, EVA-01 a EVA-13 |
-| CU05 | RF13, RF14, RF15, RF16 | PLA-03 a PLA-08, PAR-01 a PAR-06 |
+| CU05 | RF13, RF14, RF15, RF16, RF30, RF31 | PLA-03 a PLA-08, PAR-01 a PAR-06 |
 | CU06 | RF17 | HIS-01 a HIS-04 |
-| CU07 | RF18 a RF25 | LUG-01 a LUG-05 |
-| CU08 | RF26 a RF28 | CAT-01, ETI-01 |
-| CU09 | RF29 | — |
+| CU07 | RF18 | LUG-01 a LUG-05 |
+| CU08 | RF19 | CAT-01, ETI-01 |
+| CU09 | RF20 | — |
+| CU10 | RF21, RF22, RF23 | USR-02, USR-05 |
+| CU11 | RF24, RF25 | PLA-01, PLA-02 |
+| CU12 | RF26, RF27 | LUG-06, LUG-07 |
+| CU13 | RF28, RF29 | ADM-01, ADM-02 |
