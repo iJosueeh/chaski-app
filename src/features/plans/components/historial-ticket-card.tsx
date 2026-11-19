@@ -810,24 +810,25 @@ const styles = StyleSheet.create({
   },
   vignetteFrame: {
     alignSelf: 'stretch',
-    marginHorizontal: 14,
+    marginHorizontal: 16,
     marginTop: 12,
     marginBottom: 14,
     aspectRatio: 16 / 9,
-    borderRadius: 8,
-    borderWidth: 1.5,
+    borderRadius: 6,
+    borderWidth: 1,
     overflow: 'hidden',
     position: 'relative',
   },
   singleImageTouch: {
+    ...StyleSheet.absoluteFill,
     width: '100%',
     height: '100%',
-    position: 'relative',
+    alignSelf: 'stretch',
   },
   carouselContainer: {
+    ...StyleSheet.absoluteFill,
     width: '100%',
     height: '100%',
-    position: 'relative',
   },
   carouselScroll: {
     width: '100%',
@@ -850,6 +851,7 @@ const styles = StyleSheet.create({
     borderRadius: 2,
   },
   vignetteImage: {
+    ...StyleSheet.absoluteFill,
     width: '100%',
     height: '100%',
   },
