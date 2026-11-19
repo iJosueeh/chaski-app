@@ -13,6 +13,7 @@ import {
 import { router } from 'expo-router';
 
 import { Colors, Fonts } from '@/constants/theme';
+import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '@/features/auth/context/auth-context';
 import { updatePassword } from '@/features/auth/services/auth.service';
 import { validatePasswordChange } from '@/features/auth/utils/password-validation';
@@ -99,7 +100,7 @@ export function ChangePasswordScreen() {
 
               {success ? (
                 <View style={styles.successBox}>
-                  <Text style={styles.successIcon}>✓</Text>
+                  <Ionicons name="checkmark-circle" size={48} color={Colors.light.success} style={{ marginBottom: 6 }} />
                   <Text style={styles.successTitle}>¡Contraseña Actualizada!</Text>
                   <Text style={styles.successText}>
                     Tu contraseña ha sido modificada exitosamente en Supabase Auth.

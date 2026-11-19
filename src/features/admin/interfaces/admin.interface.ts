@@ -197,3 +197,61 @@ export interface AdminBusinessMetrics {
   gasto_promedio_plan: number;
   acciones_admin_total: number;
 }
+
+// ----------------------------------------------------------------------------
+// Reportes y Estadísticas de Negocio (RF20 / CU09)
+// ----------------------------------------------------------------------------
+
+export type AdminReportPeriodo = '7d' | '30d' | '90d' | 'todo' | 'personalizado';
+
+export type AdminReportAgrupacion = 'dia' | 'mes';
+
+export interface AdminReportRango {
+  periodo: AdminReportPeriodo;
+  desde: string;
+  hasta: string;
+  agrupacion: AdminReportAgrupacion;
+}
+
+export interface AdminReportKpis {
+  solicitudes_total: number;
+  expediciones_total: number;
+  expediciones_completadas: number;
+  expediciones_parciales: number;
+  expediciones_abandonadas: number;
+  tasa_finalizacion: number;
+  tasa_conversion_solicitudes: number;
+  paradas_visitadas_total: number;
+}
+
+export interface AdminReportItemRanking {
+  id: string;
+  nombre: string;
+  total: number;
+  porcentaje: number;
+}
+
+export interface AdminReportTimelinePoint {
+  fecha: string;
+  solicitudes: number;
+  expediciones: number;
+  completadas: number;
+  parciales: number;
+  abandonadas: number;
+}
+
+export interface AdminReportsResult {
+  rango: AdminReportRango;
+  kpis: AdminReportKpis;
+  categorias_ranking: AdminReportItemRanking[];
+  destinos_incluidos_ranking: AdminReportItemRanking[];
+  destinos_visitados_ranking: AdminReportItemRanking[];
+  evolucion: AdminReportTimelinePoint[];
+}
+
+export interface AdminReportsFilter {
+  periodo?: AdminReportPeriodo;
+  desde?: string;
+  hasta?: string;
+}
+

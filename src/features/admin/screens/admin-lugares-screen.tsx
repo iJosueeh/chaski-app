@@ -24,6 +24,7 @@ import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Colors, Fonts } from '@/constants/theme';
+import { Ionicons } from '@expo/vector-icons';
 import { useAdminPlaces } from '../hooks/use-admin-places';
 import type { Place } from '@/features/places/interface/places.interface';
 
@@ -183,7 +184,7 @@ export function AdminLugaresScreen() {
               transition={150}
             />
           ) : (
-            <Text style={[styles.thumbGlyph, { color: palette.textSecondary }]}>📷</Text>
+            <Ionicons name="camera-outline" size={24} color={palette.textSecondary} />
           )}
         </View>
 

@@ -8,6 +8,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import { router } from 'expo-router';
 
 import { Colors, Fonts } from '@/constants/theme';
+import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '@/features/auth/context/auth-context';
 import { usePlanGeneration, type PlanGenerationErrorKind } from '@/features/plans/hooks';
 import { useWizard } from '@/features/wizard/context/wizard-context';
@@ -23,6 +24,7 @@ const MENSAJES = [
   'Consultando destinos patrimoniales cercanos…',
   'Optimizando secuencias y tiempos de traslado…',
   'Ajustando paradas a tu presupuesto y ritmo…',
+  'Inspirado por Katherine mientras comía papas fritas…',
   'Calculando alternativas de expedición Serie AX…',
   'Finalizando emisión de tus boletos de ruta…',
 ];
@@ -94,7 +96,7 @@ export default function BuscandoPlanes() {
       <TocapuStrip />
       {errorMessage ? (
         <View style={styles.errorCenter}>
-          <Text style={styles.errorGlyph}>📜</Text>
+          <Ionicons name="alert-circle-outline" size={44} color={palette.burgundy} style={{ marginBottom: 12 }} />
           <Text style={[styles.errorTitle, { color: palette.brand }]}>
             No pudimos consultar el catálogo
           </Text>
@@ -119,6 +121,28 @@ export default function BuscandoPlanes() {
           <Text style={[styles.sub, { color: palette.textSecondary }]}>
             SERIE AX · MOTOR DE EXPEDICIÓN
           </Text>
+
+          {/* Ficha de anécdota / Curiosidad de expedición (Homenaje a Katherine) */}
+          <View
+            style={[
+              styles.triviaCard,
+              {
+                backgroundColor: palette.surface,
+                borderColor: palette.border,
+              },
+            ]}
+          >
+            <View style={styles.triviaHeader}>
+              <View style={[styles.triviaDiamond, { backgroundColor: palette.accent }]} />
+              <Text style={[styles.triviaTag, { color: palette.accent }]}>
+                ANÉCDOTA DE EXPEDICIÓN
+              </Text>
+              <View style={[styles.triviaDiamond, { backgroundColor: palette.accent }]} />
+            </View>
+            <Text style={[styles.triviaText, { color: palette.textSecondary }]}>
+              Cuenta la historia que la idea de Chaski nació de Katherine, una de las autoras del proyecto, mientras disfrutaba de unas papas fritas.
+            </Text>
+          </View>
         </View>
       )}
     </View>
@@ -162,6 +186,39 @@ const styles = StyleSheet.create({
     fontSize: 9,
     fontWeight: '700',
     letterSpacing: 2,
+  },
+  triviaCard: {
+    marginTop: 28,
+    marginHorizontal: 28,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    borderWidth: 1,
+    alignItems: 'center',
+    gap: 6,
+  },
+  triviaHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  triviaDiamond: {
+    width: 6,
+    height: 6,
+    transform: [{ rotate: '45deg' }],
+  },
+  triviaTag: {
+    fontFamily: Fonts.mono,
+    fontSize: 9,
+    fontWeight: '700',
+    letterSpacing: 1.2,
+  },
+  triviaText: {
+    fontFamily: Fonts.sans,
+    fontSize: 11.5,
+    textAlign: 'center',
+    lineHeight: 16,
+    fontStyle: 'italic',
   },
 
   errorCenter: {

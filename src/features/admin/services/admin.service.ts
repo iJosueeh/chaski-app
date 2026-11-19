@@ -12,6 +12,13 @@ import type {
   AdminMetrics,
   AdminMutationResult,
   AdminPlansFilter,
+  AdminReportItemRanking,
+  AdminReportKpis,
+  AdminReportPeriodo,
+  AdminReportRango,
+  AdminReportsFilter,
+  AdminReportsResult,
+  AdminReportTimelinePoint,
   AdminSetStatusResult,
   AdminSolicitud,
   AdminUpdateUserInput,
@@ -481,3 +488,102 @@ export async function fetchAdminBusinessMetrics(): Promise<{
     return { data: null, error: sanitizeAdminError(err) };
   }
 }
+
+/** Normaliza la carga útil de la RPC `admin_get_reports` a `AdminReportsResult`. */
+export function normalizeAdminReports(raw: Record<string, unknown>): AdminReportsResult {
+  const rangoRaw = (raw.rango && typeof raw.rango === 'object' ? raw.rango : {}) as Record<string, unknown>;
+  const kpisRaw = (raw.kpis && typeof raw.kpis === 'object' ? raw.kpis : {}) as Record<string, unknown>;
+
+  const rango: AdminReportRango = {
+    periodo: (typeof rangoRaw.periodo === 'string' ? rangoRaw.periodo : '30d') as AdminReportPeriodo,
+    desde: typeof rangoRaw.desde === 'string' ? rangoRaw.desde : '',
+    hasta: typeof rangoRaw.hasta === 'string' ? rangoRaw.hasta : '',
+    agrupacion: rangoRaw.agrupacion === 'mes' ? 'mes' : 'dia',
+  };
+
+  const kpis: AdminReportKpis = {
+    solicitudes_total: toNumber(kpisRaw.solicitudes_total),
+    expediciones_total: toNumber(kpisRaw.expediciones_total),
+    expediciones_completadas: toNumber(kpisRaw.expediciones_completadas),
+    expediciones_parciales: toNumber(kpisRaw.expediciones_parciales),
+    expediciones_abandonadas: toNumber(kpisRaw.expediciones_abandonadas),
+    tasa_finalizacion: toNumber(kpisRaw.tasa_finalizacion),
+    tasa_conversion_solicitudes: toNumber(kpisRaw.tasa_conversion_solicitudes),
+    paradas_visitadas_total: toNumber(kpisRaw.paradas_visitadas_total),
+  };
+
+  const mapRanking = (arr: unknown): AdminReportItemRanking[] => {
+    if (!Array.isArray(arr)) return [];
+    return arr.map((item) => {
+      const it = (item && typeof item === 'object' ? item : {}) as Record<string, unknown>;
+      return {
+        id: String(it.id ?? ''),
+        nombre: String(it.nombre ?? 'Sin nombre'),
+        total: toNumber(it.total),
+        porcentaje: toNumber(it.porcentaje),
+      };
+    });
+  };
+
+  const mapEvolucion = (arr: unknown): AdminReportTimelinePoint[] => {
+    if (!Array.isArray(arr)) return [];
+    return arr.map((item) => {
+      const it = (item && typeof item === 'object' ? item : {}) as Record<string, unknown>;
+      return {
+        fecha: String(it.fecha ?? ''),
+        solicitudes: toNumber(it.solicitudes),
+        expediciones: toNumber(it.expediciones),
+        completadas: toNumber(it.completadas),
+        parciales: toNumber(it.parciales),
+        abandonadas: toNumber(it.abandonadas),
+      };
+    });
+  };
+
+  return {
+    rango,
+    kpis,
+    categorias_ranking: mapRanking(raw.categorias_ranking),
+    destinos_incluidos_ranking: mapRanking(raw.destinos_incluidos_ranking),
+    destinos_visitados_ranking: mapRanking(raw.destinos_visitados_ranking),
+    evolucion: mapEvolucion(raw.evolucion),
+  };
+}
+
+/**
+ * Consulta las métricas agregadas, rankings y evolución para el módulo de Reportes (RF20).
+ */
+export async function fetchAdminReports(
+  filter: AdminReportsFilter = {},
+): Promise<{
+  data: AdminReportsResult | null;
+  error?: string;
+}> {
+  try {
+    const periodo = filter.periodo ?? '30d';
+    const params: {
+      p_periodo: string;
+      p_desde?: string | null;
+      p_hasta?: string | null;
+    } = {
+      p_periodo: periodo,
+      p_desde: filter.desde ?? null,
+      p_hasta: filter.hasta ?? null,
+    };
+
+    const { data, error } = await supabase.rpc('admin_get_reports', params);
+
+    if (error) {
+      return { data: null, error: sanitizeAdminError(error) };
+    }
+
+    if (!data || typeof data !== 'object') {
+      return { data: null, error: 'No se pudieron leer los reportes estadísticos.' };
+    }
+
+    return { data: normalizeAdminReports(data as Record<string, unknown>) };
+  } catch (err: any) {
+    return { data: null, error: sanitizeAdminError(err) };
+  }
+}
+

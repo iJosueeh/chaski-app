@@ -27,6 +27,7 @@ import * as Location from 'expo-location';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Colors, Fonts } from '@/constants/theme';
+import { Ionicons } from '@expo/vector-icons';
 import { useWizard } from '@/features/wizard/context/wizard-context';
 import {
   StepIndicator,
@@ -182,7 +183,7 @@ export default function WizardMapa() {
       {/* Buscador compacto Serie AX */}
       <View style={styles.searchWrap}>
         <View style={[styles.searchField, { backgroundColor: palette.surface, borderColor: palette.border }]}>
-          <Text style={styles.searchIcon} accessible={false}>🔍</Text>
+          <Ionicons name="search" size={15} color={palette.textSecondary} style={{ marginRight: 6 }} />
           <TextInput
             style={[styles.searchInput, { color: palette.brand }]}
             placeholder="Ej. Parque Kennedy, Miraflores"
@@ -205,7 +206,7 @@ export default function WizardMapa() {
               accessibilityLabel="Borrar texto de búsqueda"
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             >
-              <Text style={[styles.clearBtnText, { color: palette.textSecondary }]}>✕</Text>
+              <Ionicons name="close-circle" size={16} color={palette.textSecondary} />
             </TouchableOpacity>
           ) : null}
         </View>
@@ -230,8 +231,9 @@ export default function WizardMapa() {
       </View>
 
       {searchError ? (
-        <View style={[styles.errorContainer, { backgroundColor: 'rgba(125, 41, 53, 0.08)' }]}>
-          <Text style={[styles.errorText, { color: palette.burgundy }]}>⚠️ {searchError}</Text>
+        <View style={[styles.errorContainer, { backgroundColor: 'rgba(125, 41, 53, 0.08)', flexDirection: 'row', alignItems: 'center', gap: 6 }]}>
+          <Ionicons name="warning-outline" size={14} color={palette.burgundy} />
+          <Text style={[styles.errorText, { color: palette.burgundy }]}>{searchError}</Text>
         </View>
       ) : null}
 
@@ -271,25 +273,27 @@ export default function WizardMapa() {
 
         {/* Botón flotante para reenfocar en Lima */}
         <TouchableOpacity
-          style={[styles.floatingActionBtn, { backgroundColor: palette.surface, borderColor: palette.border }]}
+          style={[styles.floatingActionBtn, { backgroundColor: palette.surface, borderColor: palette.border, flexDirection: 'row', alignItems: 'center', gap: 4 }]}
           onPress={reenfocarLima}
           accessibilityRole="button"
           accessibilityLabel="Reenfocar mapa en Lima Centro"
           hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
         >
-          <Text style={[styles.floatingActionText, { color: palette.brand }]}>🎯 LIMA</Text>
+          <Ionicons name="locate" size={13} color={palette.brand} />
+          <Text style={[styles.floatingActionText, { color: palette.brand }]}>LIMA</Text>
         </TouchableOpacity>
 
         {/* Alternador de capa cartográfica */}
         <TouchableOpacity
-          style={[styles.layerToggleBtn, { backgroundColor: palette.surface, borderColor: palette.border }]}
+          style={[styles.layerToggleBtn, { backgroundColor: palette.surface, borderColor: palette.border, flexDirection: 'row', alignItems: 'center', gap: 4 }]}
           onPress={() => setUseOsmTiles((prev) => !prev)}
           accessibilityRole="button"
           accessibilityLabel="Alternar capa cartográfica entre OpenStreetMap y nativo"
           hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
         >
+          <Ionicons name="map-outline" size={12} color={palette.textSecondary} />
           <Text style={[styles.layerToggleText, { color: palette.textSecondary }]}>
-            {useOsmTiles ? '🗺 OSM' : '🗺 GOOGLE'}
+            {useOsmTiles ? 'OSM' : 'GOOGLE'}
           </Text>
         </TouchableOpacity>
 
@@ -308,8 +312,9 @@ export default function WizardMapa() {
           <View style={[styles.ticketStub, { backgroundColor: palette.surface, borderColor: palette.primary }]}>
             <View style={styles.ticketHeader}>
               <View style={styles.ticketTagRow}>
+                <Ionicons name="location-sharp" size={13} color={palette.primary} style={{ marginRight: 2 }} />
                 <Text style={[styles.ticketTagText, { color: palette.primary }]}>
-                  📍 PUNTO DE PARTIDA
+                  PUNTO DE PARTIDA
                 </Text>
                 <View style={[styles.statusBadge, { backgroundColor: 'rgba(212, 175, 55, 0.18)' }]}>
                   <Text style={[styles.statusBadgeText, { color: palette.brand }]}>FIJADO</Text>
@@ -320,8 +325,10 @@ export default function WizardMapa() {
                 accessibilityRole="button"
                 accessibilityLabel="Eliminar punto seleccionado"
                 hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}
               >
-                <Text style={[styles.changeLinkText, { color: palette.burgundy }]}>✕ Cambiar</Text>
+                <Ionicons name="close" size={12} color={palette.burgundy} />
+                <Text style={[styles.changeLinkText, { color: palette.burgundy }]}>Cambiar</Text>
               </TouchableOpacity>
             </View>
 
@@ -335,9 +342,12 @@ export default function WizardMapa() {
           </View>
         ) : (
           <View style={[styles.ticketStubEmpty, { backgroundColor: palette.surface, borderColor: palette.border }]}>
-            <Text style={[styles.emptyPromptTitle, { color: palette.textSecondary }]}>
-              📍 NINGÚN PUNTO SELECCIONADO
-            </Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 2 }}>
+              <Ionicons name="location-outline" size={14} color={palette.textSecondary} />
+              <Text style={[styles.emptyPromptTitle, { color: palette.textSecondary }]}>
+                NINGÚN PUNTO SELECCIONADO
+              </Text>
+            </View>
             <Text style={[styles.emptyPromptHint, { color: palette.textSecondary }]}>
               Toca el mapa o busca para habilitar la confirmación.
             </Text>

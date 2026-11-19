@@ -12,6 +12,7 @@ import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Colors, Fonts } from '@/constants/theme';
+import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '@/features/auth/context/auth-context';
 import { usePreferences } from '@/features/preferences/context/preferences-context';
 import { signOut } from '@/features/auth/services/auth.service';
@@ -279,7 +280,8 @@ export function PreferencesScreen() {
 
         {successMessage && (
           <View style={styles.successBox} accessible={true} accessibilityRole="alert">
-            <Text style={styles.successText}>✓ {successMessage}</Text>
+            <Ionicons name="checkmark-circle-outline" size={15} color="#3B682D" />
+            <Text style={styles.successText}>{successMessage}</Text>
           </View>
         )}
 
@@ -323,7 +325,8 @@ export function PreferencesScreen() {
             accessibilityLabel="Acceder al panel de Intendencia"
             testID="admin-intendencia-button"
           >
-            <Text style={styles.adminButtonText}>🛡️ PANEL DE INTENDENCIA</Text>
+            <Ionicons name="shield-outline" size={16} color="#8C651E" />
+            <Text style={styles.adminButtonText}>PANEL DE INTENDENCIA</Text>
           </Pressable>
         )}
 
@@ -506,6 +509,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#EBF4E8',
     borderWidth: 1,
     borderColor: Colors.light.success,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
   },
   successText: {
     fontFamily: Fonts.sans,
@@ -567,6 +573,8 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: Colors.light.accent,
     backgroundColor: '#FAF5E8',
+    flexDirection: 'row',
+    gap: 8,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 2,
