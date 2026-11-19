@@ -26,6 +26,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Colors, Fonts } from '@/constants/theme';
 import { Ionicons } from '@expo/vector-icons';
+import { RouteHeroBanner } from '@/features/plans/components/route-hero-banner';
+import { getRouteCoverImage } from '@/features/plans/utils/route-image';
 import { TocapuStrip, WizardButton, WizardTopBar } from '@/features/wizard/components/wizard-ui';
 import { usePlans } from '@/features/plans/context/plans-context';
 import { useNearbyStop } from '@/features/plans/hooks/use-nearby-stop';
@@ -190,6 +192,14 @@ export default function PlanActivoScreen() {
         ]}
         showsVerticalScrollIndicator={false}
       >
+        {Boolean(getRouteCoverImage(planActivo, planActivo.titulo)) && (
+          <RouteHeroBanner
+            imageUrl={getRouteCoverImage(planActivo, planActivo.titulo)}
+            title={planActivo.titulo}
+            badge="EXPEDICIÓN EN CURSO"
+          />
+        )}
+
         {/* Cabecera del boleto de recorrido */}
         <View style={styles.header}>
           <View style={styles.kickerRow}>

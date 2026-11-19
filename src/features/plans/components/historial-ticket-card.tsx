@@ -24,10 +24,13 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { router } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 
 import { Colors, Fonts } from '@/constants/theme';
 import type { SolicitudHistorialEntry } from '@/features/plans/interfaces/solicitudes-plan.interface';
+import { getRouteCoverImage } from '@/features/plans/utils/route-image';
 import {
   formatFolioNumber,
   formatHistoryCost,
@@ -77,6 +80,18 @@ export function HistorialTicketCard({ entry, indexFromEnd }: HistorialTicketCard
   const puntoFinal = formatTipoPuntoFinal(entry.tipo_punto_final, entry.final_descripcion);
   const partida = entry.inicio_descripcion ?? 'Ubicación seleccionada';
   const categorias = entry.categorias ?? [];
+
+  const coverUrl = getRouteCoverImage(snapshot, entry.inicio_descripcion);
+  const destinationPlace =
+    paradas.find((p) => Boolean(p.place?.imagen_portada || p.place?.imagenes?.length))?.place ??
+    paradas.find((p) => Boolean(p.place?.nombre))?.place ??
+    null;
+  const destinationLabel = (
+    destinationPlace?.nombre ??
+    (entry.inicio_descripcion
+      ? entry.inicio_descripcion.replace(/^Expedición\s+(desde\s+)?/i, '')
+      : 'Destino patrimonial')
+  ).trim();
 
   const badgeText =
     estado === 'COMPLETADA'
@@ -218,6 +233,77 @@ export function HistorialTicketCard({ entry, indexFromEnd }: HistorialTicketCard
         </View>
       </View>
 
+      {/* Viñeta fotográfica patrimonial (Serie AX) — Estampa postal de archivo interactiva */}
+      {Boolean(coverUrl) && (
+        <TouchableOpacity
+          activeOpacity={0.88}
+          onPress={handleOpenDetail}
+          style={[
+            styles.vignetteFrame,
+            {
+              borderColor: palette.border,
+              backgroundColor: palette.backgroundElement,
+            },
+          ]}
+          accessibilityRole="button"
+          accessibilityLabel={`Ver registro visual de ${destinationLabel}`}
+          accessibilityHint="Abre la ficha completa de la expedición"
+        >
+          <Image
+            source={{ uri: coverUrl! }}
+            style={styles.vignetteImage}
+            contentFit="cover"
+            transition={250}
+            accessibilityLabel={`Fotografía de ${destinationLabel}`}
+          />
+          {/* Scrim degradado sutil para legibilidad */}
+          <View style={styles.vignetteScrim} />
+
+          {/* Micro-etiqueta superior: Registro de Archivo */}
+          <View style={[styles.vignetteTopTag, { backgroundColor: 'rgba(35, 20, 10, 0.72)' }]}>
+            <Text style={[styles.vignetteTopTagText, { color: palette.accent }]}>
+              REGISTRO VISUAL
+            </Text>
+          </View>
+
+          {/* Micro-etiqueta inferior: Destino y acceso */}
+          <View style={styles.vignetteBottomRow}>
+            <View
+              style={[
+                styles.vignettePlacePill,
+                {
+                  backgroundColor: 'rgba(35, 20, 10, 0.82)',
+                  borderColor: 'rgba(212, 175, 55, 0.45)',
+                },
+              ]}
+            >
+              <Ionicons
+                name="location-sharp"
+                size={10}
+                color={palette.accent}
+                style={styles.vignettePinIcon}
+              />
+              <Text style={[styles.vignettePlaceText, { color: palette.surface }]} numberOfLines={1}>
+                {destinationLabel.toUpperCase()}
+              </Text>
+            </View>
+            <View
+              style={[
+                styles.vignetteCtaPill,
+                {
+                  backgroundColor: 'rgba(35, 20, 10, 0.82)',
+                  borderColor: 'rgba(212, 175, 55, 0.45)',
+                },
+              ]}
+            >
+              <Text style={[styles.vignetteCtaText, { color: palette.accent }]}>
+                DETALLE ↗
+              </Text>
+            </View>
+          </View>
+        </TouchableOpacity>
+      )}
+
       {/* Perforación de boleto (muescas semicirculares y línea punteada) */}
       <View style={styles.perforationWrapper} accessible={false}>
         <View style={[styles.notchLeft, { backgroundColor: palette.background }]} />
@@ -314,14 +400,20 @@ export function HistorialTicketCard({ entry, indexFromEnd }: HistorialTicketCard
       {/* Botón táctil accesible para abrir detalle de la solicitud */}
       <View style={[styles.actionWrap, { borderTopColor: palette.border }]}>
         <TouchableOpacity
-          activeOpacity={0.7}
+          activeOpacity={0.75}
           onPress={handleOpenDetail}
-          style={styles.openDetailBtn}
+          style={[
+            styles.openDetailBtn,
+            {
+              backgroundColor: palette.surface,
+              borderColor: palette.accent,
+            },
+          ]}
           accessibilityRole="button"
           accessibilityLabel={`Consultar detalle de la solicitud ${titulo}`}
         >
           <Text style={[styles.openDetailBtnText, { color: palette.primary }]}>
-            CONSULTAR DETALLE DE SOLICITUD ↗
+            {expedicion ? 'CONSULTAR DETALLE DE EXPEDICIÓN ↗' : 'CONSULTAR DETALLE DE SOLICITUD ↗'}
           </Text>
         </TouchableOpacity>
       </View>
@@ -566,19 +658,22 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     paddingHorizontal: 16,
     paddingVertical: 10,
-    backgroundColor: 'rgba(212, 175, 55, 0.06)',
+    backgroundColor: 'rgba(212, 175, 55, 0.05)',
   },
   openDetailBtn: {
-    minHeight: 44,
+    minHeight: 48,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 4,
+    borderWidth: 1,
   },
   openDetailBtnText: {
     fontFamily: Fonts.mono,
     fontSize: 10.5,
     fontWeight: '700',
-    letterSpacing: 1.2,
+    letterSpacing: 1.1,
     textAlign: 'center',
   },
   ticketFooter: {
@@ -590,6 +685,78 @@ const styles = StyleSheet.create({
   footerArchiveText: {
     fontFamily: Fonts.mono,
     fontSize: 8,
+    letterSpacing: 0.8,
+  },
+  vignetteFrame: {
+    marginHorizontal: 14,
+    marginTop: 12,
+    marginBottom: 14,
+    aspectRatio: 16 / 9,
+    borderRadius: 8,
+    borderWidth: 1.5,
+    overflow: 'hidden',
+    position: 'relative',
+  },
+  vignetteImage: {
+    width: '100%',
+    height: '100%',
+  },
+  vignetteScrim: {
+    ...StyleSheet.absoluteFill,
+    backgroundColor: 'rgba(26, 16, 8, 0.22)',
+  },
+  vignetteTopTag: {
+    position: 'absolute',
+    top: 10,
+    left: 10,
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    borderRadius: 4,
+  },
+  vignetteTopTagText: {
+    fontFamily: Fonts.mono,
+    fontSize: 8,
+    fontWeight: '700',
+    letterSpacing: 0.8,
+  },
+  vignetteBottomRow: {
+    position: 'absolute',
+    bottom: 10,
+    left: 10,
+    right: 10,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: 8,
+  },
+  vignettePlacePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 4,
+    borderWidth: 1,
+    flexShrink: 1,
+  },
+  vignettePinIcon: {
+    marginRight: 4,
+  },
+  vignettePlaceText: {
+    fontFamily: Fonts.mono,
+    fontSize: 9.5,
+    fontWeight: '700',
+    letterSpacing: 0.6,
+  },
+  vignetteCtaPill: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 4,
+    borderWidth: 1,
+  },
+  vignetteCtaText: {
+    fontFamily: Fonts.mono,
+    fontSize: 9,
+    fontWeight: '700',
     letterSpacing: 0.8,
   },
 });

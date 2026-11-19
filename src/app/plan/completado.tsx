@@ -20,6 +20,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -40,6 +41,7 @@ import {
   getCompletadoDurationMinutes,
   getCompletadoPresentation,
 } from '@/features/plans/utils/plan-completado-formatters';
+import { getRouteCoverImage } from '@/features/plans/utils/route-image';
 import { TocapuStrip, WizardButton } from '@/features/wizard/components/wizard-ui';
 
 const palette = Colors.light;
@@ -156,6 +158,18 @@ export default function PlanCompletadoScreen() {
                         {ticketMeta}
                       </Text>
                     </View>
+
+                    {Boolean(getRouteCoverImage(entry, entry?.titulo)) && (
+                      <View style={styles.ticketCoverWrapper}>
+                        <Image
+                          source={{ uri: getRouteCoverImage(entry, entry?.titulo)! }}
+                          style={styles.ticketCoverImage}
+                          contentFit="cover"
+                          transition={300}
+                          accessibilityLabel={`Portada de ${entry.titulo}`}
+                        />
+                      </View>
+                    )}
 
                     {/* Lista de paradas distinguiendo honestamente visitadas vs pendientes */}
                     <View style={styles.paradasList}>
@@ -329,6 +343,20 @@ const styles = StyleSheet.create({
   },
   ticketHeader: {
     gap: 2,
+  },
+  ticketCoverWrapper: {
+    width: '100%',
+    aspectRatio: 16 / 9,
+    borderRadius: 8,
+    overflow: 'hidden',
+    backgroundColor: palette.backgroundElement,
+    borderWidth: 1,
+    borderColor: palette.border,
+    marginVertical: 4,
+  },
+  ticketCoverImage: {
+    width: '100%',
+    height: '100%',
   },
   ticketKicker: {
     fontFamily: Fonts.mono,

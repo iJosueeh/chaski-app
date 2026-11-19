@@ -4,6 +4,7 @@
  */
 import { useMemo } from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Image } from 'expo-image';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -11,6 +12,7 @@ import { Colors, Fonts } from '@/constants/theme';
 import { Ionicons } from '@expo/vector-icons';
 import { TocapuStrip, WizardButton, WizardTopBar } from '@/features/wizard/components/wizard-ui';
 import type { GeneratedPlan } from '@/features/plan-engine/plan-engine';
+import { getRouteCoverImage } from '@/features/plans/utils/route-image';
 import { safeBackWizard, safeCancelWizard } from '@/features/wizard/utils/wizard-navigation';
 
 const palette = Colors.light;
@@ -205,6 +207,18 @@ export default function ResultadosPlanes() {
                       {detalles.subtitulo}
                     </Text>
 
+                    {Boolean(getRouteCoverImage(p, p.titulo)) && (
+                      <View style={styles.cardCoverWrapper}>
+                        <Image
+                          source={{ uri: getRouteCoverImage(p, p.titulo)! }}
+                          style={styles.cardCoverImage}
+                          contentFit="cover"
+                          transition={300}
+                          accessibilityLabel={`Portada de ${p.titulo}`}
+                        />
+                      </View>
+                    )}
+
                     {/* Explicación objetiva de la ruta */}
                     <View style={[styles.reasonBox, { backgroundColor: palette.backgroundElement, borderColor: palette.border }]}>
                       <Text style={[styles.reasonLabel, { color: palette.primary }]}>
@@ -336,6 +350,20 @@ const styles = StyleSheet.create({
     letterSpacing: 0.8,
     marginTop: 2,
     marginBottom: 8,
+  },
+  cardCoverWrapper: {
+    width: '100%',
+    aspectRatio: 16 / 9,
+    borderRadius: 8,
+    overflow: 'hidden',
+    backgroundColor: palette.backgroundElement,
+    borderWidth: 1,
+    borderColor: palette.border,
+    marginBottom: 10,
+  },
+  cardCoverImage: {
+    width: '100%',
+    height: '100%',
   },
 
   reasonBox: {
