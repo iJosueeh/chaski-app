@@ -19,10 +19,13 @@
 import { useState } from 'react';
 import {
   Platform,
+  ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
+  type NativeScrollEvent,
+  type NativeSyntheticEvent,
 } from 'react-native';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
@@ -30,7 +33,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { Colors, Fonts } from '@/constants/theme';
 import type { SolicitudHistorialEntry } from '@/features/plans/interfaces/solicitudes-plan.interface';
-import { getRouteCoverImage } from '@/features/plans/utils/route-image';
+import { getRouteCoverImages } from '@/features/plans/utils/route-image';
 import {
   formatFolioNumber,
   formatHistoryCost,
@@ -81,17 +84,18 @@ export function HistorialTicketCard({ entry, indexFromEnd }: HistorialTicketCard
   const partida = entry.inicio_descripcion ?? 'Ubicación seleccionada';
   const categorias = entry.categorias ?? [];
 
-  const coverUrl = getRouteCoverImage(snapshot, entry.inicio_descripcion);
-  const destinationPlace =
-    paradas.find((p) => Boolean(p.place?.imagen_portada || p.place?.imagenes?.length))?.place ??
-    paradas.find((p) => Boolean(p.place?.nombre))?.place ??
-    null;
-  const destinationLabel = (
-    destinationPlace?.nombre ??
-    (entry.inicio_descripcion
-      ? entry.inicio_descripcion.replace(/^Expedición\s+(desde\s+)?/i, '')
-      : 'Destino patrimonial')
-  ).trim();
+  const coverImages = getRouteCoverImages(snapshot, entry.inicio_descripcion);
+  const [activeSlide, setActiveSlide] = useState(0);
+  const [carouselWidth, setCarouselWidth] = useState(0);
+
+  const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+    if (carouselWidth <= 0) return;
+    const offsetX = event.nativeEvent.contentOffset.x;
+    const index = Math.round(offsetX / carouselWidth);
+    if (index !== activeSlide && index >= 0 && index < coverImages.length) {
+      setActiveSlide(index);
+    }
+  };
 
   const badgeText =
     estado === 'COMPLETADA'
@@ -233,11 +237,9 @@ export function HistorialTicketCard({ entry, indexFromEnd }: HistorialTicketCard
         </View>
       </View>
 
-      {/* Viñeta fotográfica patrimonial (Serie AX) — Estampa postal de archivo interactiva */}
-      {Boolean(coverUrl) && (
-        <TouchableOpacity
-          activeOpacity={0.88}
-          onPress={handleOpenDetail}
+      {/* Portada fotográfica patrimonial (Serie AX) — 1 foto fija o Carrusel si hay 2+ paradas con foto */}
+      {coverImages.length > 0 && (
+        <View
           style={[
             styles.vignetteFrame,
             {
@@ -245,63 +247,182 @@ export function HistorialTicketCard({ entry, indexFromEnd }: HistorialTicketCard
               backgroundColor: palette.backgroundElement,
             },
           ]}
-          accessibilityRole="button"
-          accessibilityLabel={`Ver registro visual de ${destinationLabel}`}
-          accessibilityHint="Abre la ficha completa de la expedición"
+          onLayout={(e) => {
+            const width = Math.round(e.nativeEvent.layout.width);
+            if (width > 0 && width !== carouselWidth) {
+              setCarouselWidth(width);
+            }
+          }}
         >
-          <Image
-            source={{ uri: coverUrl! }}
-            style={styles.vignetteImage}
-            contentFit="cover"
-            transition={250}
-            accessibilityLabel={`Fotografía de ${destinationLabel}`}
-          />
-          {/* Scrim degradado sutil para legibilidad */}
-          <View style={styles.vignetteScrim} />
-
-          {/* Micro-etiqueta superior: Registro de Archivo */}
-          <View style={[styles.vignetteTopTag, { backgroundColor: 'rgba(35, 20, 10, 0.72)' }]}>
-            <Text style={[styles.vignetteTopTagText, { color: palette.accent }]}>
-              REGISTRO VISUAL
-            </Text>
-          </View>
-
-          {/* Micro-etiqueta inferior: Destino y acceso */}
-          <View style={styles.vignetteBottomRow}>
-            <View
-              style={[
-                styles.vignettePlacePill,
-                {
-                  backgroundColor: 'rgba(35, 20, 10, 0.82)',
-                  borderColor: 'rgba(212, 175, 55, 0.45)',
-                },
-              ]}
+          {coverImages.length === 1 ? (
+            <TouchableOpacity
+              activeOpacity={0.88}
+              onPress={handleOpenDetail}
+              style={styles.singleImageTouch}
+              accessibilityRole="button"
+              accessibilityLabel={`Ver registro visual de ${coverImages[0].placeName}`}
+              accessibilityHint="Abre la ficha completa de la expedición"
             >
-              <Ionicons
-                name="location-sharp"
-                size={10}
-                color={palette.accent}
-                style={styles.vignettePinIcon}
+              <Image
+                source={{ uri: coverImages[0].url }}
+                style={styles.vignetteImage}
+                contentFit="cover"
+                transition={250}
+                accessibilityLabel={`Fotografía de ${coverImages[0].placeName}`}
               />
-              <Text style={[styles.vignettePlaceText, { color: palette.surface }]} numberOfLines={1}>
-                {destinationLabel.toUpperCase()}
-              </Text>
+              <View style={styles.vignetteScrim} />
+
+              {/* Micro-etiqueta superior: Registro de Archivo */}
+              <View style={[styles.vignetteTopTag, { backgroundColor: 'rgba(35, 20, 10, 0.72)' }]}>
+                <Text style={[styles.vignetteTopTagText, { color: palette.accent }]}>
+                  REGISTRO VISUAL
+                </Text>
+              </View>
+
+              {/* Micro-etiqueta inferior: Destino y acceso */}
+              <View style={styles.vignetteBottomRow}>
+                <View
+                  style={[
+                    styles.vignettePlacePill,
+                    {
+                      backgroundColor: 'rgba(35, 20, 10, 0.85)',
+                      borderColor: 'rgba(212, 175, 55, 0.45)',
+                    },
+                  ]}
+                >
+                  <Ionicons
+                    name="location-sharp"
+                    size={10}
+                    color={palette.accent}
+                    style={styles.vignettePinIcon}
+                  />
+                  <Text style={[styles.vignettePlaceText, { color: palette.surface }]} numberOfLines={1}>
+                    {coverImages[0].placeName.toUpperCase()}
+                  </Text>
+                </View>
+                <View
+                  style={[
+                    styles.vignetteCtaPill,
+                    {
+                      backgroundColor: 'rgba(35, 20, 10, 0.85)',
+                      borderColor: 'rgba(212, 175, 55, 0.45)',
+                    },
+                  ]}
+                >
+                  <Text style={[styles.vignetteCtaText, { color: palette.accent }]}>
+                    DETALLE ↗
+                  </Text>
+                </View>
+              </View>
+            </TouchableOpacity>
+          ) : (
+            <View style={styles.carouselContainer}>
+              <ScrollView
+                horizontal
+                pagingEnabled
+                showsHorizontalScrollIndicator={false}
+                nestedScrollEnabled
+                onScroll={handleScroll}
+                scrollEventThrottle={16}
+                style={styles.carouselScroll}
+              >
+                {coverImages.map((img, idx) => (
+                  <TouchableOpacity
+                    key={`${img.url}-${idx}`}
+                    activeOpacity={0.88}
+                    onPress={handleOpenDetail}
+                    style={[
+                      styles.slideWrap,
+                      { width: carouselWidth > 0 ? carouselWidth : undefined },
+                    ]}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Ver estación ${img.order ?? idx + 1}: ${img.placeName}`}
+                    accessibilityHint="Abre la ficha completa de la expedición"
+                  >
+                    <Image
+                      source={{ uri: img.url }}
+                      style={styles.vignetteImage}
+                      contentFit="cover"
+                      transition={200}
+                      accessibilityLabel={`Fotografía de ${img.placeName}`}
+                    />
+                    <View style={styles.vignetteScrim} />
+
+                    {/* Micro-etiqueta inferior: Destino del slide */}
+                    <View style={styles.vignetteBottomRow}>
+                      <View
+                        style={[
+                          styles.vignettePlacePill,
+                          {
+                            backgroundColor: 'rgba(35, 20, 10, 0.85)',
+                            borderColor: 'rgba(212, 175, 55, 0.45)',
+                          },
+                        ]}
+                      >
+                        <Ionicons
+                          name="location-sharp"
+                          size={10}
+                          color={palette.accent}
+                          style={styles.vignettePinIcon}
+                        />
+                        <Text style={[styles.vignettePlaceText, { color: palette.surface }]} numberOfLines={1}>
+                          {img.order ? `PARADA ${img.order} · ` : ''}{img.placeName.toUpperCase()}
+                        </Text>
+                      </View>
+                      <View
+                        style={[
+                          styles.vignetteCtaPill,
+                          {
+                            backgroundColor: 'rgba(35, 20, 10, 0.85)',
+                            borderColor: 'rgba(212, 175, 55, 0.45)',
+                          },
+                        ]}
+                      >
+                        <Text style={[styles.vignetteCtaText, { color: palette.accent }]}>
+                          DETALLE ↗
+                        </Text>
+                      </View>
+                    </View>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+
+              {/* Indicador de posición superior derecha: e.g. 1 / 3 */}
+              <View
+                style={[
+                  styles.vignetteTopTag,
+                  {
+                    backgroundColor: 'rgba(35, 20, 10, 0.85)',
+                    borderColor: 'rgba(212, 175, 55, 0.4)',
+                    borderWidth: 0.5,
+                  },
+                ]}
+              >
+                <Ionicons name="images-outline" size={10} color={palette.accent} style={{ marginRight: 4 }} />
+                <Text style={[styles.vignetteTopTagText, { color: palette.accent }]}>
+                  {activeSlide + 1} / {coverImages.length}
+                </Text>
+              </View>
+
+              {/* Indicador inferior de puntos (dots) */}
+              <View style={styles.carouselDotsRow} pointerEvents="none">
+                {coverImages.map((_, dotIdx) => (
+                  <View
+                    key={dotIdx}
+                    style={[
+                      styles.carouselDot,
+                      {
+                        backgroundColor:
+                          dotIdx === activeSlide ? palette.accent : 'rgba(255, 255, 255, 0.4)',
+                        width: dotIdx === activeSlide ? 14 : 5,
+                      },
+                    ]}
+                  />
+                ))}
+              </View>
             </View>
-            <View
-              style={[
-                styles.vignetteCtaPill,
-                {
-                  backgroundColor: 'rgba(35, 20, 10, 0.82)',
-                  borderColor: 'rgba(212, 175, 55, 0.45)',
-                },
-              ]}
-            >
-              <Text style={[styles.vignetteCtaText, { color: palette.accent }]}>
-                DETALLE ↗
-              </Text>
-            </View>
-          </View>
-        </TouchableOpacity>
+          )}
+        </View>
       )}
 
       {/* Perforación de boleto (muescas semicirculares y línea punteada) */}
@@ -688,6 +809,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.8,
   },
   vignetteFrame: {
+    alignSelf: 'stretch',
     marginHorizontal: 14,
     marginTop: 12,
     marginBottom: 14,
@@ -696,6 +818,36 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     overflow: 'hidden',
     position: 'relative',
+  },
+  singleImageTouch: {
+    width: '100%',
+    height: '100%',
+    position: 'relative',
+  },
+  carouselContainer: {
+    width: '100%',
+    height: '100%',
+    position: 'relative',
+  },
+  carouselScroll: {
+    width: '100%',
+    height: '100%',
+  },
+  slideWrap: {
+    height: '100%',
+    position: 'relative',
+  },
+  carouselDotsRow: {
+    position: 'absolute',
+    bottom: 12,
+    alignSelf: 'center',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  carouselDot: {
+    height: 4,
+    borderRadius: 2,
   },
   vignetteImage: {
     width: '100%',

@@ -4,6 +4,7 @@ import {
   cachePlaceCoverImage,
   clearPlaceCoverImagesCache,
   getRouteCoverImage,
+  getRouteCoverImages,
   loadPlaceCoverImages,
 } from '../utils/route-image';
 
@@ -161,5 +162,68 @@ describe('getRouteCoverImage', () => {
     expect(getRouteCoverImage(null, 'Canta Rana')).toBe(
       'https://mock.supabase.co/storage/v1/object/public/places/p-1/portada.jpg',
     );
+  });
+
+  it('getRouteCoverImages retorna todas las fotos de paradas en orden sin duplicados', () => {
+    const plan = {
+      paradas: [
+        {
+          orden: 1,
+          place: {
+            id: 'p1',
+            nombre: 'Canta Rana',
+            imagen_portada: 'https://images.unsplash.com/canta_rana.jpg',
+          },
+        },
+        {
+          orden: 2,
+          place: {
+            id: 'p2',
+            nombre: 'Malecón Paul Harris',
+            imagen_portada: null,
+          },
+        },
+        {
+          orden: 3,
+          place: {
+            id: 'p3',
+            nombre: 'Museo Pedro de Osma',
+            imagen_portada: 'https://images.unsplash.com/osma.jpg',
+          },
+        },
+      ],
+    } as unknown as GeneratedPlan;
+
+    const images = getRouteCoverImages(plan);
+    expect(images).toHaveLength(2);
+    expect(images[0]).toEqual({
+      url: 'https://images.unsplash.com/canta_rana.jpg',
+      placeName: 'Canta Rana',
+      order: 1,
+    });
+    expect(images[1]).toEqual({
+      url: 'https://images.unsplash.com/osma.jpg',
+      placeName: 'Museo Pedro de Osma',
+      order: 3,
+    });
+  });
+
+  it('getRouteCoverImages retorna exactamente 1 foto si solo 1 parada tiene imagen', () => {
+    const plan = {
+      paradas: [
+        {
+          orden: 1,
+          place: {
+            id: 'p1',
+            nombre: 'Canta Rana',
+            imagen_portada: 'https://images.unsplash.com/canta_rana.jpg',
+          },
+        },
+      ],
+    } as unknown as GeneratedPlan;
+
+    const images = getRouteCoverImages(plan);
+    expect(images).toHaveLength(1);
+    expect(images[0].placeName).toBe('Canta Rana');
   });
 });

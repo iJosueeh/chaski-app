@@ -91,78 +91,123 @@ export async function loadPlaceCoverImages(
   }
 }
 
+export interface RouteCoverImageItem {
+  url: string;
+  placeName: string;
+  order?: number;
+}
+
 /**
- * Resuelve la URL pública de la imagen de portada de la ruta.
- * 1. Revisa las paradas del plan (imagen_portada directa, imagenes o búsqueda en caché por id/nombre).
- * 2. Si no hay plan/paradas, usa el fallback (inicio_descripcion o nombre del lugar).
+ * Resuelve la colección completa de imágenes de las paradas de la ruta.
+ * - Si hay múltiples paradas con imágenes, retorna todas en orden de visita.
+ * - Si no hay paradas o no tienen fotos, resuelve desde el fallback (inicio_descripcion o nombre).
  */
-export function getRouteCoverImage(
+export function getRouteCoverImages(
   plan?: GeneratedPlan | null,
   fallback?: string | null,
-): string | null {
-  // 1. Buscar en paradas del plan
+): RouteCoverImageItem[] {
+  const items: RouteCoverImageItem[] = [];
+  const seenUrls = new Set<string>();
+
+  // 1. Recorrer paradas del plan
   if (plan?.paradas && Array.isArray(plan.paradas) && plan.paradas.length > 0) {
     for (const parada of plan.paradas) {
       const place = parada?.place;
       if (!place) continue;
 
+      let foundUrl: string | null = null;
+
       // a. imagen_portada directa
       if (place.imagen_portada && typeof place.imagen_portada === 'string') {
         const trimmed = place.imagen_portada.trim();
         if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
-          return trimmed;
+          foundUrl = trimmed;
+        } else {
+          const url = getPlaceImageUrl(trimmed);
+          if (url) foundUrl = url;
         }
-        const url = getPlaceImageUrl(trimmed);
-        if (url) return url;
       }
 
       // b. Colección de imágenes
-      if (Array.isArray(place.imagenes) && place.imagenes.length > 0) {
+      if (!foundUrl && Array.isArray(place.imagenes) && place.imagenes.length > 0) {
         const portadaImg = place.imagenes.find((img) => img.es_portada) ?? place.imagenes[0];
         if (portadaImg?.url && typeof portadaImg.url === 'string') {
           const trimmed = portadaImg.url.trim();
           if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
-            return trimmed;
+            foundUrl = trimmed;
           }
         }
-        if (portadaImg?.storage_path) {
+        if (!foundUrl && portadaImg?.storage_path) {
           const url = getPlaceImageUrl(portadaImg.storage_path);
-          if (url) return url;
+          if (url) foundUrl = url;
         }
       }
 
-      // c. Búsqueda en caché por id del lugar
-      if (place.id && placeCoverImagesCache.has(place.id)) {
-        return placeCoverImagesCache.get(place.id)!;
+      // c. Búsqueda en caché por id
+      if (!foundUrl && place.id && placeCoverImagesCache.has(place.id)) {
+        foundUrl = placeCoverImagesCache.get(place.id)!;
       }
 
-      // d. Búsqueda en caché por nombre del lugar
-      if (place.nombre) {
+      // d. Búsqueda en caché por nombre
+      if (!foundUrl && place.nombre) {
         const norm = normalize(place.nombre);
         if (placeCoverImagesCache.has(norm)) {
-          return placeCoverImagesCache.get(norm)!;
+          foundUrl = placeCoverImagesCache.get(norm)!;
+        }
+      }
+
+      if (foundUrl && !seenUrls.has(foundUrl)) {
+        seenUrls.add(foundUrl);
+        items.push({
+          url: foundUrl,
+          placeName: place.nombre ?? `Parada ${parada.orden}`,
+          order: parada.orden,
+        });
+      }
+    }
+  }
+
+  // 2. Si no hay imágenes en paradas, resolver desde fallback
+  if (items.length === 0 && fallback && typeof fallback === 'string') {
+    const trimmed = fallback.trim();
+    let fallbackUrl: string | null = null;
+
+    if (placeCoverImagesCache.has(trimmed)) {
+      fallbackUrl = placeCoverImagesCache.get(trimmed)!;
+    } else {
+      const norm = normalize(trimmed);
+      if (placeCoverImagesCache.has(norm)) {
+        fallbackUrl = placeCoverImagesCache.get(norm)!;
+      } else {
+        for (const [key, url] of placeCoverImagesCache.entries()) {
+          if (key.length >= 4 && norm.includes(key)) {
+            fallbackUrl = url;
+            break;
+          }
         }
       }
     }
-  }
 
-  // 2. Buscar por fallback (nombre del lugar o inicio_descripcion de la solicitud)
-  if (fallback && typeof fallback === 'string') {
-    const trimmed = fallback.trim();
-    if (placeCoverImagesCache.has(trimmed)) {
-      return placeCoverImagesCache.get(trimmed)!;
-    }
-    const norm = normalize(trimmed);
-    if (placeCoverImagesCache.has(norm)) {
-      return placeCoverImagesCache.get(norm)!;
-    }
-    // Coincidencia parcial (ej. "Expedición desde Canta Rana" contiene "canta rana")
-    for (const [key, url] of placeCoverImagesCache.entries()) {
-      if (key.length >= 4 && norm.includes(key)) {
-        return url;
-      }
+    if (fallbackUrl) {
+      const cleanName = trimmed.replace(/^Expedición\s+(desde\s+)?/i, '').trim();
+      items.push({
+        url: fallbackUrl,
+        placeName: cleanName || 'Destino patrimonial',
+      });
     }
   }
 
-  return null;
+  return items;
+}
+
+/**
+ * Resuelve la URL pública de la imagen de portada principal de la ruta.
+ * Reutiliza `getRouteCoverImages` para consistencia.
+ */
+export function getRouteCoverImage(
+  plan?: GeneratedPlan | null,
+  fallback?: string | null,
+): string | null {
+  const images = getRouteCoverImages(plan, fallback);
+  return images.length > 0 ? images[0].url : null;
 }
