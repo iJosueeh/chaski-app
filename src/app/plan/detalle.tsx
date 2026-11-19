@@ -6,14 +6,20 @@
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Image } from 'expo-image';
+import { Ionicons } from '@expo/vector-icons';
 
 import { Colors, Fonts } from '@/constants/theme';
 import { AndeanTransitStamp } from '@/features/auth/components/andean-transit-stamp';
+import { getPlaceImageUrl } from '@/features/places/services/places-storage.service';
+import { RouteHeroBanner } from '@/features/plans/components/route-hero-banner';
+import { getRouteCoverImage } from '@/features/plans/utils/route-image';
 import { TocapuStrip, WizardButton, WizardTopBar } from '@/features/wizard/components/wizard-ui';
 import { usePlans, type PlanHistorialEntry } from '@/features/plans/context/plans-context';
 import type { GeneratedPlan } from '@/features/plan-engine/plan-engine';
 import type { SolicitudHistorialEntry } from '@/features/plans/interfaces/solicitudes-plan.interface';
 import {
+  formatFolioNumber,
   formatHistoryDate,
   formatMovilidadSolicitud,
   formatPresupuestoSolicitud,
@@ -27,6 +33,141 @@ import {
 import { safeBackWizard, safeCancelWizard } from '@/features/wizard/utils/wizard-navigation';
 
 const palette = Colors.light;
+
+function getStopPhotoUri(stop: GeneratedPlan['paradas'][number]): string | null {
+  const place = stop.place;
+  if (!place) return null;
+  if (place.imagen_portada) {
+    const trimmed = place.imagen_portada.trim();
+    if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+      return trimmed;
+    }
+    const url = getPlaceImageUrl(trimmed);
+    if (url) return url;
+  }
+  if (place.id) {
+    const byId = getRouteCoverImage(null, place.id);
+    if (byId) return byId;
+  }
+  if (place.nombre) {
+    const byName = getRouteCoverImage(null, place.nombre);
+    if (byName) return byName;
+  }
+  return null;
+}
+
+interface StopItemCardProps {
+  stop: GeneratedPlan['paradas'][number];
+  isVisited?: boolean;
+  isOmitted?: boolean;
+  isHistorial?: boolean;
+  isLegacy?: boolean;
+}
+
+function StopItemCard({
+  stop,
+  isVisited,
+  isOmitted,
+  isHistorial,
+  isLegacy,
+}: StopItemCardProps) {
+  const photoUri = getStopPhotoUri(stop);
+
+  return (
+    <View
+      style={[
+        styles.stop,
+        {
+          backgroundColor: palette.surface,
+          borderColor: isVisited ? palette.accent : palette.border,
+        },
+      ]}
+    >
+      <View
+        style={[
+          styles.stopNum,
+          {
+            backgroundColor: isVisited
+              ? palette.primary
+              : isOmitted
+              ? palette.backgroundElement
+              : palette.accent,
+          },
+        ]}
+      >
+        <Text
+          style={[
+            styles.stopNumText,
+            {
+              color: isVisited
+                ? palette.surface
+                : isOmitted
+                ? palette.textSecondary
+                : palette.brand,
+            },
+          ]}
+        >
+          {isVisited ? '✓' : stop.orden}
+        </Text>
+      </View>
+
+      <View style={styles.stopInfo}>
+        <View style={styles.stopHeaderRow}>
+          <Text style={[styles.stopHora, { color: palette.primary }]}>
+            {stop.llegada} · {stop.duracion_min} min
+          </Text>
+          {isHistorial && !isLegacy && (
+            <View
+              style={[
+                styles.stopBadgePill,
+                {
+                  backgroundColor: isVisited
+                    ? 'rgba(122, 158, 109, 0.16)'
+                    : 'rgba(125, 41, 53, 0.08)',
+                },
+              ]}
+            >
+              <Text
+                style={[
+                  styles.stopBadgePillText,
+                  { color: isVisited ? palette.brand : palette.burgundy },
+                ]}
+              >
+                {isVisited ? '✓ VISITADA' : 'NO VISITADA'}
+              </Text>
+            </View>
+          )}
+        </View>
+
+        <Text style={[styles.stopNombre, { color: palette.brand }]} numberOfLines={2}>
+          {stop.place?.nombre}
+        </Text>
+
+        {Boolean(stop.place?.direccion) && (
+          <Text style={[styles.stopDir, { color: palette.textSecondary }]} numberOfLines={1}>
+            {stop.place?.direccion}
+          </Text>
+        )}
+
+        <Text style={[styles.stopCosto, { color: palette.textSecondary }]}>
+          {stop.costo_estimado === 0 ? 'Acceso libre' : `Entrada estimada S/ ${stop.costo_estimado}`}
+        </Text>
+      </View>
+
+      {Boolean(photoUri) && (
+        <View style={[styles.stopPhotoWrap, { borderColor: palette.border }]}>
+          <Image
+            source={{ uri: photoUri! }}
+            style={styles.stopPhoto}
+            contentFit="cover"
+            transition={200}
+            accessibilityLabel={`Fotografía de ${stop.place?.nombre}`}
+          />
+        </View>
+      )}
+    </View>
+  );
+}
 
 export default function DetallePlan() {
   const insets = useSafeAreaInsets();
@@ -97,15 +238,15 @@ export default function DetallePlan() {
   const isLegacy = plan.paradas_visitadas === undefined;
   const fechaCompletado = plan.completado_en ? formatHistoryDate(plan.completado_en) : null;
 
-  const statusBadgeText = isHistorial
+  const heroBadge = isHistorial
     ? estado === 'COMPLETADA'
-      ? 'SERIE AX · EXPEDICIÓN COMPLETADA'
+      ? '✓ EXPEDICIÓN SELLADA'
       : estado === 'PARCIAL'
-      ? `SERIE AX · EXPEDICIÓN PARCIAL (${paradasVisitadas.length}/${plan.paradas.length})`
+      ? `EXPEDICIÓN PARCIAL (${paradasVisitadas.length}/${plan.paradas.length})`
       : estado === 'ABANDONADA'
-      ? 'SERIE AX · EXPEDICIÓN ABANDONADA'
-      : 'SERIE AX · ARCHIVO HISTÓRICO'
-    : plan.titulo.toUpperCase();
+      ? 'EXPEDICIÓN INTERRUMPIDA'
+      : 'ARCHIVO HISTÓRICO'
+    : 'PROPUESTA PATRIMONIAL';
 
   return (
     <View style={[styles.canvas, { backgroundColor: palette.background }]}>
@@ -122,13 +263,29 @@ export default function DetallePlan() {
         ]}
         showsVerticalScrollIndicator={false}
       >
+        <RouteHeroBanner
+          imageUrl={getRouteCoverImage(plan, plan.titulo)}
+          title={plan.titulo}
+          badge={heroBadge}
+        />
+
         <View style={styles.header}>
-          <Text style={[styles.kicker, { color: palette.primary }]}>{statusBadgeText}</Text>
+          <View style={styles.headerKickerRow}>
+            <View style={[styles.kickerBadge, { backgroundColor: palette.accent }]}>
+              <Text style={[styles.kickerBadgeText, { color: palette.brand }]}>
+                {isHistorial ? 'ARCHIVO HISTÓRICO' : 'PROPUESTA DE RUTA'}
+              </Text>
+            </View>
+            <Text style={[styles.seriesText, { color: palette.burgundy }]}>SERIE AX</Text>
+          </View>
+
           <Text style={[styles.title, { color: palette.brand }]}>{plan.titulo}</Text>
-          {!!plan.descripcion && (
+
+          {Boolean(plan.descripcion) && (
             <Text style={[styles.subtitle, { color: palette.textSecondary }]}>{plan.descripcion}</Text>
           )}
-          {isHistorial && !!fechaCompletado && (
+
+          {isHistorial && Boolean(fechaCompletado) && (
             <View style={[styles.historyMetaPill, { backgroundColor: palette.backgroundElement, borderColor: palette.border }]}>
               <Text style={[styles.historyMetaPillText, { color: palette.burgundy }]}>
                 {estado === 'ABANDONADA' ? 'Interrumpida el: ' : 'Sellado el: '}
@@ -138,23 +295,34 @@ export default function DetallePlan() {
           )}
         </View>
 
-        {/* Resumen de viaje */}
-        <View style={[styles.summary, { backgroundColor: palette.surface, borderColor: palette.border }]}>
-          <View style={styles.summaryRow}>
-            <Text style={[styles.summaryLabel, { color: palette.textSecondary }]}>DURACIÓN</Text>
-            <Text style={[styles.summaryVal, { color: palette.brand }]}>
+        {/* Bloque de Métricas Clave (Serie AX) */}
+        <View style={styles.metricsGrid}>
+          <View style={[styles.metricTile, { backgroundColor: palette.surface, borderColor: palette.border }]}>
+            <Text style={[styles.metricTileLabel, { color: palette.textSecondary }]}>DURACIÓN</Text>
+            <Text style={[styles.metricTileVal, { color: palette.brand }]}>
               {Math.floor(plan.duracion_total_min / 60)}h {plan.duracion_total_min % 60}m
             </Text>
           </View>
-          <View style={styles.summaryRow}>
-            <Text style={[styles.summaryLabel, { color: palette.textSecondary }]}>COSTO ESTIMADO</Text>
-            <Text style={[styles.summaryVal, { color: palette.burgundy }]}>S/ {plan.costo_total}</Text>
+          <View style={[styles.metricTile, { backgroundColor: palette.surface, borderColor: palette.border }]}>
+            <Text style={[styles.metricTileLabel, { color: palette.textSecondary }]}>ESTACIONES</Text>
+            <Text style={[styles.metricTileVal, { color: palette.brand }]}>
+              {plan.paradas.length} {plan.paradas.length === 1 ? 'parada' : 'paradas'}
+            </Text>
           </View>
-          <View style={styles.summaryRow}>
-            <Text style={[styles.summaryLabel, { color: palette.textSecondary }]}>DISTANCIA</Text>
-            <Text style={[styles.summaryVal, { color: palette.brand }]}>≈ {plan.distancia_km_aprox} km</Text>
+          <View style={[styles.metricTile, { backgroundColor: palette.surface, borderColor: palette.border }]}>
+            <Text style={[styles.metricTileLabel, { color: palette.textSecondary }]}>COSTO ESTIMADO</Text>
+            <Text style={[styles.metricTileVal, { color: palette.burgundy }]}>S/ {plan.costo_total}</Text>
           </View>
         </View>
+
+        {Boolean(plan.distancia_km_aprox) && (
+          <View style={[styles.distancePill, { backgroundColor: palette.surface, borderColor: palette.border }]}>
+            <Ionicons name="map-outline" size={13} color={palette.accent} style={{ marginRight: 6 }} />
+            <Text style={[styles.distancePillText, { color: palette.brand }]}>
+              Recorrido aproximado: ≈ {plan.distancia_km_aprox} km
+            </Text>
+          </View>
+        )}
 
         {/* Itinerario parada por parada */}
         <Text style={[styles.sectionTitle, { color: palette.brand }]}>
@@ -166,85 +334,14 @@ export default function DetallePlan() {
             const isOmitted = isHistorial && !isLegacy && !paradasVisitadas.includes(s.orden);
 
             return (
-              <View
+              <StopItemCard
                 key={s.place?.id ?? `stop-${s.orden}`}
-                style={[
-                  styles.stop,
-                  {
-                    backgroundColor: palette.surface,
-                    borderColor: isVisited
-                      ? palette.accent
-                      : isOmitted
-                      ? palette.border
-                      : palette.border,
-                  },
-                ]}
-              >
-                <View
-                  style={[
-                    styles.stopNum,
-                    {
-                      backgroundColor: isVisited
-                        ? palette.primary
-                        : isOmitted
-                        ? palette.backgroundElement
-                        : palette.accent,
-                    },
-                  ]}
-                >
-                  <Text
-                    style={[
-                      styles.stopNumText,
-                      {
-                        color: isVisited
-                          ? palette.surface
-                          : isOmitted
-                          ? palette.textSecondary
-                          : palette.brand,
-                      },
-                    ]}
-                  >
-                    {isVisited ? '✓' : s.orden}
-                  </Text>
-                </View>
-                <View style={styles.stopInfo}>
-                  <View style={styles.stopHeaderRow}>
-                    <Text style={[styles.stopHora, { color: palette.primary }]}>
-                      {s.llegada} · {s.duracion_min} min
-                    </Text>
-                    {isHistorial && !isLegacy && (
-                      <View
-                        style={[
-                          styles.stopBadgePill,
-                          {
-                            backgroundColor: isVisited
-                              ? 'rgba(122, 158, 109, 0.16)'
-                              : 'rgba(125, 41, 53, 0.08)',
-                          },
-                        ]}
-                      >
-                        <Text
-                          style={[
-                            styles.stopBadgePillText,
-                            { color: isVisited ? palette.brand : palette.burgundy },
-                          ]}
-                        >
-                          {isVisited ? '✓ VISITADA' : 'NO VISITADA'}
-                        </Text>
-                      </View>
-                    )}
-                  </View>
-                  <Text style={[styles.stopNombre, { color: palette.brand }]}>{s.place?.nombre}</Text>
-                  {!!s.place?.direccion && (
-                    <Text style={[styles.stopDir, { color: palette.textSecondary }]} numberOfLines={1}>
-                      {s.place.direccion}
-                    </Text>
-                  )}
-                  <Text style={[styles.stopCosto, { color: palette.textSecondary }]}>
-                    {s.costo_estimado === 0 ? 'Gratis' : `Entrada hasta S/ ${s.costo_estimado}`}
-                  </Text>
-                </View>
-              </View>
+                stop={s}
+                isVisited={isVisited}
+                isOmitted={isOmitted}
+                isHistorial={isHistorial}
+                isLegacy={isLegacy}
+              />
             );
           })}
         </View>
@@ -360,14 +457,17 @@ function SolicitudDetailView({ solicitudJson }: { solicitudJson?: string }) {
       ? formatHistoryDate(completadoIso)
       : null;
 
-  const kickerText =
-    estado === 'COMPLETADA'
-      ? 'SERIE AX · EXPEDICIÓN COMPLETADA'
+  const folio = formatFolioNumber(1, solicitud.id);
+
+  const heroBadge = expedicion
+    ? estado === 'COMPLETADA'
+      ? '✓ EXPEDICIÓN SELLADA'
       : estado === 'PARCIAL'
-      ? `SERIE AX · EXPEDICIÓN PARCIAL (${visitadasList.length}/${paradasSnapshot.length})`
+      ? `EXPEDICIÓN PARCIAL (${visitadasList.length}/${paradasSnapshot.length})`
       : estado === 'ABANDONADA'
-      ? 'SERIE AX · EXPEDICIÓN ABANDONADA'
-      : 'SERIE AX · SOLICITUD DE RUTA';
+      ? 'EXPEDICIÓN INTERRUMPIDA'
+      : 'ARCHIVO HISTÓRICO'
+    : 'SOLICITUD SERIE AX';
 
   return (
     <View style={[styles.canvas, { backgroundColor: palette.background }]}>
@@ -384,9 +484,24 @@ function SolicitudDetailView({ solicitudJson }: { solicitudJson?: string }) {
         ]}
         showsVerticalScrollIndicator={false}
       >
+        <RouteHeroBanner
+          imageUrl={getRouteCoverImage(snapshot, solicitud.inicio_descripcion || titulo)}
+          title={titulo}
+          badge={heroBadge}
+        />
+
         <View style={styles.header}>
-          <Text style={[styles.kicker, { color: palette.primary }]}>{kickerText}</Text>
+          <View style={styles.headerKickerRow}>
+            <View style={[styles.kickerBadge, { backgroundColor: palette.accent }]}>
+              <Text style={[styles.kickerBadgeText, { color: palette.brand }]}>
+                {expedicion ? 'EXPEDICIÓN ARCHIVADA' : 'SOLICITUD REGISTRADA'}
+              </Text>
+            </View>
+            <Text style={[styles.seriesText, { color: palette.burgundy }]}>SERIE AX</Text>
+          </View>
+
           <Text style={[styles.title, { color: palette.brand }]}>{titulo}</Text>
+
           <View style={[styles.historyMetaPill, { backgroundColor: palette.backgroundElement, borderColor: palette.border }]}>
             <Text style={[styles.historyMetaPillText, { color: palette.burgundy }]}>
               {expedicion ? (
@@ -401,50 +516,65 @@ function SolicitudDetailView({ solicitudJson }: { solicitudJson?: string }) {
           </View>
         </View>
 
-        <View style={[styles.summary, { backgroundColor: palette.surface, borderColor: palette.border }]}>
-          <View style={styles.summaryRow}>
-            <Text style={[styles.summaryLabel, { color: palette.textSecondary }]}>HORARIO</Text>
-            <Text style={[styles.summaryVal, { color: palette.brand }]}>{horario}</Text>
+        {/* Bloque de Métricas Clave (Serie AX) */}
+        <View style={styles.metricsGrid}>
+          <View style={[styles.metricTile, { backgroundColor: palette.surface, borderColor: palette.border }]}>
+            <Text style={[styles.metricTileLabel, { color: palette.textSecondary }]}>DURACIÓN</Text>
+            <Text style={[styles.metricTileVal, { color: palette.brand }]}>{duracion}</Text>
           </View>
-          <View style={styles.summaryRow}>
-            <Text style={[styles.summaryLabel, { color: palette.textSecondary }]}>DURACIÓN</Text>
-            <Text style={[styles.summaryVal, { color: palette.brand }]}>{duracion}</Text>
+          <View style={[styles.metricTile, { backgroundColor: palette.surface, borderColor: palette.border }]}>
+            <Text style={[styles.metricTileLabel, { color: palette.textSecondary }]}>
+              {snapshot ? 'ESTACIONES' : 'PRESUPUESTO'}
+            </Text>
+            <Text style={[styles.metricTileVal, { color: palette.brand }]}>
+              {snapshot ? `${paradasSnapshot.length} paradas` : presupuesto}
+            </Text>
           </View>
-          <View style={styles.summaryRow}>
-            <Text style={[styles.summaryLabel, { color: palette.textSecondary }]}>PRESUPUESTO</Text>
-            <Text style={[styles.summaryVal, { color: palette.burgundy }]}>{presupuesto}</Text>
+          <View style={[styles.metricTile, { backgroundColor: palette.surface, borderColor: palette.border }]}>
+            <Text style={[styles.metricTileLabel, { color: palette.textSecondary }]}>
+              {snapshot ? 'GASTO REF.' : 'HORARIO'}
+            </Text>
+            <Text style={[styles.metricTileVal, { color: palette.burgundy }]}>
+              {snapshot && snapshot.costo_total != null ? `S/ ${snapshot.costo_total}` : horario}
+            </Text>
           </View>
-          {snapshot && snapshot.costo_total != null && (
-            <View style={styles.summaryRow}>
-              <Text style={[styles.summaryLabel, { color: palette.textSecondary }]}>COSTO ESTIMADO</Text>
-              <Text style={[styles.summaryVal, { color: palette.burgundy }]}>S/ {snapshot.costo_total}</Text>
-            </View>
-          )}
-          {snapshot && snapshot.distancia_km_aprox != null && (
-            <View style={styles.summaryRow}>
-              <Text style={[styles.summaryLabel, { color: palette.textSecondary }]}>DISTANCIA</Text>
-              <Text style={[styles.summaryVal, { color: palette.brand }]}>≈ {snapshot.distancia_km_aprox} km</Text>
-            </View>
-          )}
-          <View style={styles.summaryRow}>
-            <Text style={[styles.summaryLabel, { color: palette.textSecondary }]}>MOVILIDAD</Text>
-            <Text style={[styles.summaryVal, { color: palette.brand }]}>{movilidad}</Text>
+        </View>
+
+        {/* Ficha Logística / Hoja de Ruta */}
+        <View style={[styles.logisticsCard, { backgroundColor: palette.surface, borderColor: palette.border }]}>
+          <View style={styles.logisticsHeader}>
+            <Text style={[styles.logisticsKicker, { color: palette.primary }]}>FICHA DE EXPEDICIÓN</Text>
+            {Boolean(folio) && (
+              <Text style={[styles.logisticsFolio, { color: palette.textSecondary }]}>
+                {folio}
+              </Text>
+            )}
           </View>
-          <View style={styles.summaryRow}>
-            <Text style={[styles.summaryLabel, { color: palette.textSecondary }]}>PARTIDA</Text>
-            <Text
-              style={[styles.summaryVal, { color: palette.brand, flexShrink: 1, textAlign: 'right' }]}
-              numberOfLines={2}
-            >
+
+          <View style={styles.logisticsRow}>
+            <Ionicons name="time-outline" size={14} color={palette.accent} style={styles.logisticsIcon} />
+            <Text style={[styles.logisticsLabel, { color: palette.textSecondary }]}>Horario:</Text>
+            <Text style={[styles.logisticsValue, { color: palette.brand }]}>{horario}</Text>
+          </View>
+
+          <View style={styles.logisticsRow}>
+            <Ionicons name="walk-outline" size={14} color={palette.accent} style={styles.logisticsIcon} />
+            <Text style={[styles.logisticsLabel, { color: palette.textSecondary }]}>Movilidad:</Text>
+            <Text style={[styles.logisticsValue, { color: palette.brand }]}>{movilidad}</Text>
+          </View>
+
+          <View style={styles.logisticsRow}>
+            <Ionicons name="navigate-outline" size={14} color={palette.accent} style={styles.logisticsIcon} />
+            <Text style={[styles.logisticsLabel, { color: palette.textSecondary }]}>Partida:</Text>
+            <Text style={[styles.logisticsValue, { color: palette.brand }]} numberOfLines={2}>
               {partida}
             </Text>
           </View>
-          <View style={styles.summaryRow}>
-            <Text style={[styles.summaryLabel, { color: palette.textSecondary }]}>PUNTO FINAL</Text>
-            <Text
-              style={[styles.summaryVal, { color: palette.brand, flexShrink: 1, textAlign: 'right' }]}
-              numberOfLines={2}
-            >
+
+          <View style={styles.logisticsRow}>
+            <Ionicons name="location-outline" size={14} color={palette.accent} style={styles.logisticsIcon} />
+            <Text style={[styles.logisticsLabel, { color: palette.textSecondary }]}>Punto final:</Text>
+            <Text style={[styles.logisticsValue, { color: palette.brand }]} numberOfLines={2}>
               {puntoFinal}
             </Text>
           </View>
@@ -461,79 +591,14 @@ function SolicitudDetailView({ solicitudJson }: { solicitudJson?: string }) {
                 const isOmitted = !isVisited;
 
                 return (
-                  <View
+                  <StopItemCard
                     key={s.place?.id ?? `stop-${s.orden}`}
-                    style={[
-                      styles.stop,
-                      {
-                        backgroundColor: palette.surface,
-                        borderColor: isVisited ? palette.accent : palette.border,
-                      },
-                    ]}
-                  >
-                    <View
-                      style={[
-                        styles.stopNum,
-                        {
-                          backgroundColor: isVisited
-                            ? palette.primary
-                            : isOmitted
-                            ? palette.backgroundElement
-                            : palette.accent,
-                        },
-                      ]}
-                    >
-                      <Text
-                        style={[
-                          styles.stopNumText,
-                          {
-                            color: isVisited
-                              ? palette.surface
-                              : isOmitted
-                              ? palette.textSecondary
-                              : palette.brand,
-                          },
-                        ]}
-                      >
-                        {isVisited ? '✓' : s.orden}
-                      </Text>
-                    </View>
-                    <View style={styles.stopInfo}>
-                      <View style={styles.stopHeaderRow}>
-                        <Text style={[styles.stopHora, { color: palette.primary }]}>
-                          {s.llegada} · {s.duracion_min} min
-                        </Text>
-                        <View
-                          style={[
-                            styles.stopBadgePill,
-                            {
-                              backgroundColor: isVisited
-                                ? 'rgba(122, 158, 109, 0.16)'
-                                : 'rgba(125, 41, 53, 0.08)',
-                            },
-                          ]}
-                        >
-                          <Text
-                            style={[
-                              styles.stopBadgePillText,
-                              { color: isVisited ? palette.brand : palette.burgundy },
-                            ]}
-                          >
-                            {isVisited ? '✓ VISITADA' : 'NO VISITADA'}
-                          </Text>
-                        </View>
-                      </View>
-                      <Text style={[styles.stopNombre, { color: palette.brand }]}>{s.place?.nombre}</Text>
-                      {!!s.place?.direccion && (
-                        <Text style={[styles.stopDir, { color: palette.textSecondary }]} numberOfLines={1}>
-                          {s.place.direccion}
-                        </Text>
-                      )}
-                      <Text style={[styles.stopCosto, { color: palette.textSecondary }]}>
-                        {s.costo_estimado === 0 ? 'Gratis' : `Entrada hasta S/ ${s.costo_estimado}`}
-                      </Text>
-                    </View>
-                  </View>
+                    stop={s}
+                    isVisited={isVisited}
+                    isOmitted={isOmitted}
+                    isHistorial={Boolean(expedicion)}
+                    isLegacy={false}
+                  />
                 );
               })}
             </View>
@@ -542,15 +607,24 @@ function SolicitudDetailView({ solicitudJson }: { solicitudJson?: string }) {
 
         {categorias.length > 0 && (
           <>
-            <Text style={[styles.sectionTitle, { color: palette.brand }]}>CATEGORÍAS SOLICITADAS</Text>
-            <View style={[styles.whyCard, { backgroundColor: palette.surface, borderColor: palette.border }]}>
-              {categorias.map((nombre) => (
-                <Text
-                  key={nombre}
-                  style={[styles.why, { color: palette.textSecondary, marginBottom: 4 }]}
+            <Text style={[styles.sectionTitle, { color: palette.brand }]}>AFINIDADES Y CATEGORÍAS</Text>
+            <View style={styles.categoryChipsWrap}>
+              {categorias.map((cat) => (
+                <View
+                  key={cat}
+                  style={[
+                    styles.categoryChip,
+                    {
+                      backgroundColor: palette.surface,
+                      borderColor: palette.border,
+                    },
+                  ]}
                 >
-                  {nombre}
-                </Text>
+                  <Ionicons name="sparkles-outline" size={11} color={palette.accent} style={{ marginRight: 5 }} />
+                  <Text style={[styles.categoryChipText, { color: palette.brand }]}>
+                    {cat.toUpperCase()}
+                  </Text>
+                </View>
               ))}
             </View>
           </>
@@ -588,11 +662,28 @@ const styles = StyleSheet.create({
   canvas: { flex: 1 },
   scroll: { paddingHorizontal: 20 },
   header: { paddingTop: 14 },
-  kicker: {
+  headerKickerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 4,
+  },
+  kickerBadge: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 3,
+  },
+  kickerBadgeText: {
     fontFamily: Fonts.mono,
-    fontSize: 9.5,
+    fontSize: 8.5,
     fontWeight: '700',
-    letterSpacing: 2,
+    letterSpacing: 0.8,
+  },
+  seriesText: {
+    fontFamily: Fonts.mono,
+    fontSize: 9,
+    fontWeight: '700',
+    letterSpacing: 1,
   },
   title: {
     fontFamily: Fonts.serif,
@@ -601,27 +692,112 @@ const styles = StyleSheet.create({
     lineHeight: 26,
     marginTop: 3,
   },
-  summary: {
-    borderWidth: 1.5,
-    borderRadius: 8,
-    padding: 14,
+  subtitle: {
+    fontFamily: Fonts.sans,
+    fontSize: 13,
+    lineHeight: 18,
+    marginTop: 4,
+  },
+  historyMetaPill: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 4,
+    borderWidth: 1,
+    marginTop: 8,
+  },
+  historyMetaPillText: {
+    fontFamily: Fonts.mono,
+    fontSize: 10,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+  },
+  metricsGrid: {
+    flexDirection: 'row',
+    gap: 8,
     marginTop: 14,
+  },
+  metricTile: {
+    flex: 1,
+    paddingVertical: 10,
+    paddingHorizontal: 6,
+    borderRadius: 6,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  metricTileLabel: {
+    fontFamily: Fonts.mono,
+    fontSize: 8,
+    fontWeight: '700',
+    letterSpacing: 0.8,
+    marginBottom: 3,
+    textAlign: 'center',
+  },
+  metricTileVal: {
+    fontFamily: Fonts.mono,
+    fontSize: 11.5,
+    fontWeight: '700',
+    textAlign: 'center',
+  },
+  distancePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 6,
+    borderWidth: 1,
+    marginTop: 8,
+  },
+  distancePillText: {
+    fontFamily: Fonts.mono,
+    fontSize: 10.5,
+    fontWeight: '600',
+  },
+  logisticsCard: {
+    borderWidth: 1,
+    borderRadius: 6,
+    padding: 14,
+    marginTop: 12,
     gap: 8,
   },
-  summaryRow: {
+  logisticsHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 4,
   },
-  summaryLabel: {
+  logisticsKicker: {
+    fontFamily: Fonts.mono,
+    fontSize: 9,
+    fontWeight: '700',
+    letterSpacing: 0.8,
+  },
+  logisticsFolio: {
+    fontFamily: Fonts.mono,
+    fontSize: 9,
+    fontWeight: '600',
+    letterSpacing: 0.8,
+  },
+  logisticsRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 6,
+  },
+  logisticsIcon: {
+    marginTop: 1,
+  },
+  logisticsLabel: {
     fontFamily: Fonts.mono,
     fontSize: 9.5,
-    fontWeight: '700',
-    letterSpacing: 1,
+    fontWeight: '600',
+    minWidth: 70,
   },
-  summaryVal: {
-    fontFamily: Fonts.mono,
+  logisticsValue: {
+    fontFamily: Fonts.sans,
     fontSize: 12,
-    fontWeight: '700',
+    fontWeight: '600',
+    flex: 1,
   },
   sectionTitle: {
     fontFamily: Fonts.serif,
@@ -654,10 +830,26 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   stopInfo: { flex: 1, gap: 2 },
+  stopHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
   stopHora: {
     fontFamily: Fonts.mono,
     fontSize: 9.5,
     fontWeight: '700',
+  },
+  stopBadgePill: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 3,
+  },
+  stopBadgePillText: {
+    fontFamily: Fonts.mono,
+    fontSize: 9,
+    fontWeight: '700',
+    letterSpacing: 0.5,
   },
   stopNombre: {
     fontFamily: Fonts.serif,
@@ -671,6 +863,36 @@ const styles = StyleSheet.create({
   stopCosto: {
     fontFamily: Fonts.mono,
     fontSize: 10,
+  },
+  stopPhotoWrap: {
+    width: 56,
+    height: 56,
+    borderRadius: 6,
+    borderWidth: 1,
+    overflow: 'hidden',
+  },
+  stopPhoto: {
+    width: '100%',
+    height: '100%',
+  },
+  categoryChipsWrap: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  categoryChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 4,
+    borderWidth: 1,
+  },
+  categoryChipText: {
+    fontFamily: Fonts.mono,
+    fontSize: 9.5,
+    fontWeight: '700',
+    letterSpacing: 0.6,
   },
   whyCard: {
     borderWidth: 1,
@@ -693,42 +915,6 @@ const styles = StyleSheet.create({
   emptyText: {
     fontFamily: Fonts.mono,
     fontSize: 14,
-  },
-  subtitle: {
-    fontFamily: Fonts.sans,
-    fontSize: 13,
-    lineHeight: 18,
-    marginTop: 4,
-  },
-  historyMetaPill: {
-    alignSelf: 'flex-start',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 4,
-    borderWidth: 1,
-    marginTop: 8,
-  },
-  historyMetaPillText: {
-    fontFamily: Fonts.mono,
-    fontSize: 10,
-    fontWeight: '700',
-    letterSpacing: 0.5,
-  },
-  stopHeaderRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  stopBadgePill: {
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 3,
-  },
-  stopBadgePillText: {
-    fontFamily: Fonts.mono,
-    fontSize: 9,
-    fontWeight: '700',
-    letterSpacing: 0.5,
   },
   stampWrap: {
     marginTop: 20,
