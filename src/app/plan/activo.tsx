@@ -25,6 +25,7 @@ import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Colors, Fonts } from '@/constants/theme';
+import { Ionicons } from '@expo/vector-icons';
 import { TocapuStrip, WizardButton, WizardTopBar } from '@/features/wizard/components/wizard-ui';
 import { usePlans } from '@/features/plans/context/plans-context';
 import { useNearbyStop } from '@/features/plans/hooks/use-nearby-stop';
@@ -102,7 +103,7 @@ export default function PlanActivoScreen() {
         />
         <TocapuStrip />
         <View style={styles.emptyWrap}>
-          <Text style={styles.emptyGlyph}>🎫</Text>
+          <Ionicons name="ticket-outline" size={48} color={palette.primary} style={{ marginBottom: 12 }} />
           <Text style={[styles.emptyTitle, { color: palette.brand }]}>
             No hay expedición activa
           </Text>
@@ -242,9 +243,12 @@ export default function PlanActivoScreen() {
               { backgroundColor: 'rgba(212, 175, 55, 0.16)', borderColor: palette.accent },
             ]}
           >
-            <Text style={[styles.nearbyTitle, { color: palette.brand }]}>
-              📍 {paradaCercana.place.nombre.toUpperCase()}
-            </Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+              <Ionicons name="location-sharp" size={15} color={palette.brand} />
+              <Text style={[styles.nearbyTitle, { color: palette.brand }]}>
+                {paradaCercana.place.nombre.toUpperCase()}
+              </Text>
+            </View>
             <Text style={[styles.nearbyText, { color: palette.textSecondary }]}>
               {metrosHastaCercana !== null && metrosHastaCercana <= 30
                 ? 'El GPS te ubica en el punto. Marca la parada para seguir con el recorrido.'
@@ -341,9 +345,12 @@ export default function PlanActivoScreen() {
                 </Text>
 
                 {s.place.direccion ? (
-                  <Text style={[styles.stopDireccion, { color: palette.textSecondary }]} numberOfLines={2}>
-                    📍 {s.place.direccion}
-                  </Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 }}>
+                    <Ionicons name="location-outline" size={13} color={palette.textSecondary} />
+                    <Text style={[styles.stopDireccion, { color: palette.textSecondary, marginTop: 0 }]} numberOfLines={2}>
+                      {s.place.direccion}
+                    </Text>
+                  </View>
                 ) : null}
 
                 {/* Metadatos precisos */}
@@ -443,9 +450,12 @@ export default function PlanActivoScreen() {
                         },
                       ]}
                     >
-                      <Text style={[styles.routeButtonText, { color: palette.brand }]}>
-                        🗺 CÓMO LLEGAR ↗
-                      </Text>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                        <Ionicons name="navigate-outline" size={13} color={palette.brand} />
+                        <Text style={[styles.routeButtonText, { color: palette.brand }]}>
+                          CÓMO LLEGAR
+                        </Text>
+                      </View>
                     </TouchableOpacity>
                   ) : null}
                 </View>
@@ -492,7 +502,7 @@ export default function PlanActivoScreen() {
           />
 
           <Text style={[styles.navHint, { color: palette.textSecondary }]}>
-            Puedes volver al Inicio con ✕ arriba en cualquier momento; tu recorrido y avance permanecen guardados.
+            Puedes volver al Inicio con el botón de cerrar arriba en cualquier momento; tu recorrido y avance permanecen guardados.
           </Text>
 
           <TouchableOpacity

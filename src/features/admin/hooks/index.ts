@@ -5,3 +5,5 @@ export { useAdminStatusManager } from './use-admin-status';
 export { useAdminUserMutations } from './use-admin-user-mutations';
 export { useAdminPlans } from './use-admin-plans';
 export { useAdminPlaces } from './use-admin-places';
+export { useAdminAuditoria } from './use-admin-auditoria';
+export { useAdminReports } from './use-admin-reports';

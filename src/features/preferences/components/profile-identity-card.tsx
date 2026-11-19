@@ -13,6 +13,7 @@ import * as ImagePicker from 'expo-image-picker';
 import type { User } from '@supabase/supabase-js';
 
 import { Colors, Fonts } from '@/constants/theme';
+import { Ionicons } from '@expo/vector-icons';
 import {
   formatMembershipDate,
   validateProfileName,
@@ -361,7 +362,8 @@ export function ProfileIdentityCard({
 
       {successMessage && (
         <View style={styles.successBox} accessible={true} accessibilityRole="alert">
-          <Text style={styles.successText}>✓ {successMessage}</Text>
+          <Ionicons name="checkmark-circle-outline" size={15} color={Colors.light.success} />
+          <Text style={styles.successText}>{successMessage}</Text>
         </View>
       )}
 
@@ -544,6 +546,9 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     paddingHorizontal: 12,
     marginTop: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
   },
   successText: {
     color: Colors.light.text,

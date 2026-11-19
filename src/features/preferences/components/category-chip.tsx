@@ -8,6 +8,7 @@ import {
 } from 'react-native';
 
 import { Colors, Fonts } from '@/constants/theme';
+import { Ionicons } from '@expo/vector-icons';
 import type { Category } from '../interfaces/preferences.interface';
 
 export interface CategoryChipProps {
@@ -65,15 +66,19 @@ export const CategoryChip = memo(function CategoryChip({
           selected ? styles.badgeIndicatorSelected : styles.badgeIndicatorUnselected,
         ]}
       >
-        <Text
-          style={[
-            styles.badgeIndicatorText,
-            selected ? styles.badgeIndicatorTextSelected : styles.badgeIndicatorTextUnselected,
-          ]}
-          aria-hidden={true}
-        >
-          {selected ? '✓' : '◇'}
-        </Text>
+        {selected ? (
+          <Ionicons name="checkmark" size={11} color="#FFFFFF" />
+        ) : (
+          <Text
+            style={[
+              styles.badgeIndicatorText,
+              styles.badgeIndicatorTextUnselected,
+            ]}
+            aria-hidden={true}
+          >
+            ◇
+          </Text>
+        )}
       </View>
 
       <Text

@@ -9,6 +9,7 @@ import * as Location from 'expo-location';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Colors, Fonts } from '@/constants/theme';
+import { Ionicons } from '@expo/vector-icons';
 import { useWizard } from '@/features/wizard/context/wizard-context';
 import {
   StepIndicator,
@@ -129,10 +130,11 @@ export default function WizardUbicacion() {
 
         {SEARCH_LOCATION_ENABLED && (
           <View
-            style={[styles.mapHint, { backgroundColor: palette.surface, borderColor: palette.border }]}
+            style={[styles.mapHint, { backgroundColor: palette.surface, borderColor: palette.border, flexDirection: 'row', alignItems: 'center', gap: 6 }]}
           >
+            <Ionicons name="map-outline" size={14} color={palette.textSecondary} />
             <Text style={[styles.mapHintText, { color: palette.textSecondary }]}>
-              🗺️ Toca «Buscar mi ubicación» para elegir tu punto en un mapa interactivo
+              Toca «Buscar mi ubicación» para elegir tu punto en un mapa interactivo
             </Text>
           </View>
         )}

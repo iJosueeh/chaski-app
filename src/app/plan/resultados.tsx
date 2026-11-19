@@ -8,6 +8,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Colors, Fonts } from '@/constants/theme';
+import { Ionicons } from '@expo/vector-icons';
 import { TocapuStrip, WizardButton, WizardTopBar } from '@/features/wizard/components/wizard-ui';
 import type { GeneratedPlan } from '@/features/plan-engine/plan-engine';
 import { safeBackWizard, safeCancelWizard } from '@/features/wizard/utils/wizard-navigation';
@@ -114,7 +115,7 @@ export default function ResultadosPlanes() {
         {planes.length === 0 ? (
           /* Estado sin resultados: explicación honesta + acciones útiles */
           <View style={[styles.emptyWrap, { backgroundColor: palette.surface, borderColor: palette.border }]}>
-            <Text style={styles.emptyGlyph}>📜</Text>
+            <Ionicons name="receipt-outline" size={44} color={palette.textSecondary} style={{ marginBottom: 10 }} />
             <Text style={[styles.emptyTitle, { color: palette.brand }]}>
               Sin rutas con estos criterios
             </Text>
@@ -184,9 +185,10 @@ export default function ResultadosPlanes() {
                           </Text>
                         </View>
                         {esMejor && (
-                          <View style={[styles.bestMatchBadge, { backgroundColor: palette.accent }]}>
+                          <View style={[styles.bestMatchBadge, { backgroundColor: palette.accent, flexDirection: 'row', alignItems: 'center', gap: 4 }]}>
+                            <Ionicons name="star" size={11} color={palette.brand} />
                             <Text style={[styles.bestMatchText, { color: palette.brand }]}>
-                              ★ MEJOR COINCIDENCIA
+                              MEJOR COINCIDENCIA
                             </Text>
                           </View>
                         )}

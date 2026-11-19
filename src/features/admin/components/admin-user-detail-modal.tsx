@@ -7,6 +7,7 @@ import {
   Text,
   View,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { Colors, Fonts } from '@/constants/theme';
 import { AndeanTocapuDivider } from '@/components/andean-tocapu-divider';
 import type { AdminUser } from '../interfaces/admin.interface';
@@ -105,7 +106,7 @@ export function AdminUserDetailModal({
               accessibilityRole="button"
               accessibilityLabel="Cerrar modal de detalle"
             >
-              <Text style={styles.closeIconText}>✕</Text>
+              <Ionicons name="close" size={20} color={Colors.light.textSecondary} />
             </Pressable>
           </View>
 
@@ -164,7 +165,8 @@ export function AdminUserDetailModal({
 
           {successMessage && (
             <View style={styles.successBox} testID="admin-detail-success-box">
-              <Text style={styles.successText}>✓ {successMessage}</Text>
+              <Ionicons name="checkmark-circle-outline" size={16} color={Colors.light.success} />
+              <Text style={styles.successText}>{successMessage}</Text>
             </View>
           )}
 
@@ -187,7 +189,10 @@ export function AdminUserDetailModal({
             {isCurrentUser ? (
               // Regla de seguridad: Impedir auto-desactivación
               <View style={styles.selfNoticeBox} testID="admin-self-deactivation-warning">
-                <Text style={styles.selfNoticeTitle}>🛡️ TU CUENTA DE ADMINISTRADOR</Text>
+                <View style={styles.selfNoticeHeader}>
+                  <Ionicons name="shield-checkmark" size={16} color={Colors.light.brand} />
+                  <Text style={styles.selfNoticeTitle}>TU CUENTA DE ADMINISTRADOR</Text>
+                </View>
                 <Text style={styles.selfNoticeText}>
                   Por seguridad institucional, no puedes modificar el estado de tu propia cuenta de intendencia.
                 </Text>
@@ -430,6 +435,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#EBF4E8',
     borderWidth: 1,
     borderColor: '#CDE5C5',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
   },
   successText: {
     fontFamily: Fonts.mono,
@@ -447,6 +455,11 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: 8,
     padding: 10,
+    gap: 6,
+  },
+  selfNoticeHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 6,
   },
   selfNoticeTitle: {

@@ -1,4 +1,5 @@
 import { ActivityIndicator, StyleSheet, Text, View, Pressable } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { Colors, Fonts } from '@/constants/theme';
 import type { AdminMetrics } from '../interfaces/admin.interface';
 
@@ -24,7 +25,10 @@ export function AdminMetricsCard({ metrics, loading, error, onRetry }: AdminMetr
   if (error && !metrics) {
     return (
       <View style={[styles.cardWrapper, styles.errorCard]}>
-        <Text style={styles.errorTitle}>⚠️ Indicadores no disponibles</Text>
+        <View style={styles.errorHeaderRow}>
+          <Ionicons name="warning-outline" size={16} color={Colors.light.carmine} />
+          <Text style={styles.errorTitle}>Indicadores no disponibles</Text>
+        </View>
         <Text style={styles.errorDescription}>{error}</Text>
         {onRetry && (
           <Pressable
@@ -113,6 +117,11 @@ const styles = StyleSheet.create({
   errorCard: {
     backgroundColor: '#FDFBF7',
     borderColor: Colors.light.border,
+    gap: 6,
+  },
+  errorHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 6,
   },
   errorTitle: {

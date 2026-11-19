@@ -11,6 +11,7 @@ import { router } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Colors, Fonts } from "@/constants/theme";
+import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@/features/auth/context/auth-context";
 import {
   useAdminMetrics,
@@ -202,7 +203,9 @@ export function AdminDashboardScreen() {
         ]}
       >
         <View style={styles.guardCard}>
-          <Text style={styles.guardIcon}>⚠️</Text>
+          <View style={styles.guardIconWrap}>
+            <Ionicons name="warning-outline" size={44} color={Colors.light.carmine} />
+          </View>
           <Text style={styles.guardTitle}>ERROR DE CONEXIÓN</Text>
           <Text style={styles.guardSubtitle}>
             No fue posible validar tus credenciales debido a un problema de
@@ -242,7 +245,9 @@ export function AdminDashboardScreen() {
         ]}
       >
         <View style={styles.guardCard} testID="admin-access-denied-card">
-          <Text style={styles.guardIcon}>🛡️</Text>
+          <View style={styles.guardIconWrap}>
+            <Ionicons name="shield-outline" size={44} color={Colors.light.brand} />
+          </View>
           <Text style={styles.guardTitle}>ACCESO RESTRINGIDO</Text>
           <Text style={styles.guardSubtitle}>
             Se requieren privilegios de Intendencia (ADMIN) para acceder al
@@ -304,9 +309,12 @@ export function AdminDashboardScreen() {
                 style={styles.migrationNoticeBox}
                 testID="admin-migration-notice"
               >
-                <Text style={styles.migrationNoticeTitle}>
-                  ⚙️ MIGRACIÓN SQL PENDIENTE EN SERVIDOR
-                </Text>
+                <View style={styles.migrationNoticeHeader}>
+                  <Ionicons name="settings-outline" size={16} color={Colors.light.accent} />
+                  <Text style={styles.migrationNoticeTitle}>
+                    MIGRACIÓN SQL PENDIENTE EN SERVIDOR
+                  </Text>
+                </View>
                 <Text style={styles.migrationNoticeText}>
                   Las funciones RPC administrativas no están disponibles aún en
                   la base de datos remota. Ejecuta la migración correspondiente
@@ -363,6 +371,21 @@ export function AdminDashboardScreen() {
               <Text style={styles.plansButtonArrow}>→</Text>
             </Pressable>
 
+            {/* Acceso a reportes y estadísticas de negocio (RF20 / CU09) */}
+            <Pressable
+              style={styles.plansButton}
+              onPress={() => router.push("/admin/reportes")}
+              accessible={true}
+              accessibilityRole="button"
+              accessibilityLabel="Abrir reportes y estadísticas de negocio"
+              testID="admin-open-reports-button"
+            >
+              <Text style={styles.plansButtonText}>
+                REPORTES Y ESTADÍSTICAS
+              </Text>
+              <Text style={styles.plansButtonArrow}>→</Text>
+            </Pressable>
+
             {/* Buscador y filtros */}
             <AdminFilters
               search={search}
@@ -411,7 +434,12 @@ export function AdminDashboardScreen() {
               </View>
             ) : (
               <View style={styles.noResultsWrapper}>
-                <Text style={styles.noResultsIcon}>🔍</Text>
+                <Ionicons
+                  name="search-outline"
+                  size={40}
+                  color={Colors.light.textSecondary}
+                  style={{ marginBottom: 8 }}
+                />
                 <Text style={styles.noResultsTitle}>
                   Sin resultados en el padrón
                 </Text>
@@ -493,7 +521,7 @@ export function AdminDashboardScreen() {
                 </Text>
               </Pressable>
             </View>
-          ) : null
+          ) : undefined
         }
       />
 
@@ -564,6 +592,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 12,
   },
+  guardIconWrap: {
+    marginBottom: 4,
+  },
   guardIcon: {
     fontSize: 36,
   },
@@ -621,6 +652,11 @@ const styles = StyleSheet.create({
     padding: 12,
     marginBottom: 14,
     gap: 4,
+  },
+  migrationNoticeHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
   },
   migrationNoticeTitle: {
     fontFamily: Fonts.mono,

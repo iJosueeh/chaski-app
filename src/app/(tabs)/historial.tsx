@@ -24,6 +24,7 @@ import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Colors, Fonts } from '@/constants/theme';
+import { Ionicons } from '@expo/vector-icons';
 import { AndeanTransitStamp } from '@/features/auth/components/andean-transit-stamp';
 import { HistorialTicketCard } from '@/features/plans/components/historial-ticket-card';
 import { useHistorialSolicitudes } from '@/features/plans/hooks';
@@ -108,7 +109,7 @@ export default function HistorialScreen() {
               <View style={[styles.emptyAccentBar, { backgroundColor: palette.accent }]} />
               <View style={styles.emptyContent}>
                 <View style={[styles.emptyIconCircle, { borderColor: palette.primary, backgroundColor: palette.backgroundElement }]}>
-                  <Text style={styles.emptyGlyph}>📜</Text>
+                  <Ionicons name="receipt-outline" size={32} color={palette.primary} />
                 </View>
 
                 <Text style={[styles.emptyTitle, { color: palette.brand }]}>

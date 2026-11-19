@@ -12,6 +12,7 @@ import {
 import { router, useLocalSearchParams } from 'expo-router';
 
 import { Colors, Fonts } from '@/constants/theme';
+import { Ionicons } from '@expo/vector-icons';
 import { PasswordField } from '@/features/auth/components/password-field';
 import { useAuth } from '@/features/auth/context/auth-context';
 import { useRecoveryHandler } from '@/features/auth/hooks';
@@ -132,7 +133,7 @@ export function ResetPasswordScreen() {
                 </View>
               ) : success ? (
                 <View style={styles.successBox}>
-                  <Text style={styles.successIcon}>✓</Text>
+                  <Ionicons name="checkmark-circle" size={48} color={Colors.light.success} style={{ marginBottom: 6 }} />
                   <Text style={styles.successTitle}>¡Contraseña Restablecida!</Text>
                   <Text style={styles.successText}>
                     Tu contraseña ha sido actualizada exitosamente. Ya puedes iniciar sesión con tus nuevas credenciales.

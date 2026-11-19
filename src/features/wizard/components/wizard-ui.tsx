@@ -10,6 +10,7 @@
  * - Dorado ocre: #D4AF37 (acentos y sellos)
  */
 import { Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Colors, Fonts } from '@/constants/theme';
@@ -69,7 +70,7 @@ export function WizardTopBar({
         hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
         style={styles.navButton}
       >
-        <Text style={[styles.navButtonGlyph, { color: palette.brand }]}>‹</Text>
+        <Ionicons name="chevron-back" size={22} color={palette.brand} />
       </TouchableOpacity>
 
       {/* Marca central con folio de serie */}
@@ -88,7 +89,7 @@ export function WizardTopBar({
         hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
         style={styles.navButton}
       >
-        <Text style={[styles.navCancelGlyph, { color: palette.burgundy }]}>✕</Text>
+        <Ionicons name="close" size={20} color={palette.burgundy} />
       </TouchableOpacity>
     </View>
   );

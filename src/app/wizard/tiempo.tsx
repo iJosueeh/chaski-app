@@ -27,6 +27,7 @@ import DateTimePicker, {
 } from '@/components/ui/date-time-picker';
 
 import { Colors, Fonts } from '@/constants/theme';
+import { Ionicons } from '@expo/vector-icons';
 import { useWizard } from '@/features/wizard/context/wizard-context';
 import {
   StepIndicator,
@@ -225,11 +226,12 @@ export default function WizardTiempo() {
           <View
             style={[
               styles.avisoRow,
-              { backgroundColor: palette.surface, borderColor: palette.burgundy },
+              { backgroundColor: palette.surface, borderColor: palette.burgundy, flexDirection: 'row', alignItems: 'center', gap: 6 },
             ]}
           >
+            <Ionicons name="alert-circle-outline" size={15} color={palette.burgundy} />
             <Text style={[styles.avisoTexto, { color: palette.burgundy }]}>
-              ⚠ La hora límite es igual a la hora de inicio: ajústala para continuar.
+              La hora límite es igual a la hora de inicio: ajústala para continuar.
             </Text>
           </View>
         ) : null}

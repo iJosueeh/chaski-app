@@ -1,4 +1,5 @@
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { Colors, Fonts } from '@/constants/theme';
 import type { UserRole } from '../interfaces/admin.interface';
 
@@ -46,7 +47,7 @@ export function AdminFilters({
             accessibilityRole="button"
             accessibilityLabel="Limpiar búsqueda"
           >
-            <Text style={styles.clearSearchText}>✕</Text>
+            <Ionicons name="close-circle" size={18} color={Colors.light.textSecondary} />
           </Pressable>
         )}
       </View>
